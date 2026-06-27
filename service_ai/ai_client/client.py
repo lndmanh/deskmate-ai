@@ -1,4 +1,4 @@
-"""Reusable AI client built on the Python AI SDK (ai-sdk-python).
+"""Reusable AI client built on the official OpenAI Python SDK.
 
 This module is the single entry point for talking to OpenAI from ``service_ai``.
 It centralises credential/model configuration, availability checks and error
@@ -7,15 +7,13 @@ provider client or duplicate request-handling logic themselves.
 
 Both chat completions and embeddings go through one :class:`AIClient`.
 
-Docs: https://pythonaisdk.mintlify.app/
+Docs: https://github.com/openai/openai-python
 """
 
 import os
 from functools import lru_cache
 
-from ai_sdk import embed, embed_many, generate_text, openai
-from ai_sdk.types import CoreAssistantMessage, CoreSystemMessage, CoreUserMessage
-from openai import OpenAIError
+from openai import OpenAI, OpenAIError
 
 API_KEY_ENV = "OPENAI_API_KEY"
 CHAT_MODEL_ENV = "DESKMATE_OPENAI_MODEL"
@@ -28,11 +26,7 @@ DEFAULT_TEMPERATURE = 0.4
 # A chat message is a simple ``{"role": ..., "content": ...}`` dict.
 ChatMessage = dict[str, str]
 
-_ROLE_TO_MESSAGE = {
-    "system": CoreSystemMessage,
-    "user": CoreUserMessage,
-    "assistant": CoreAssistantMessage,
-}
+_SUPPORTED_ROLES = {"system", "user", "assistant"}
 
 
 class AIClientError(RuntimeError):
@@ -44,7 +38,7 @@ class AIClientError(RuntimeError):
 
 
 class AIClient:
-    """Reusable wrapper over the Python AI SDK for chat and embeddings.
+    """Reusable wrapper over the OpenAI Python SDK for chat and embeddings.
 
     Configuration falls back to environment variables (``OPENAI_API_KEY``,
     ``DESKMATE_OPENAI_MODEL``, ``DESKMATE_EMBEDDING_MODEL``) but every value can
@@ -58,6 +52,7 @@ class AIClient:
         chat_model: str | None = None,
         embedding_model: str | None = None,
         temperature: float = DEFAULT_TEMPERATURE,
+        openai_client=None,
     ) -> None:
         self.api_key = api_key or os.environ.get(API_KEY_ENV)
         self.chat_model = chat_model or os.environ.get(CHAT_MODEL_ENV, DEFAULT_CHAT_MODEL)
@@ -65,10 +60,7 @@ class AIClient:
             EMBEDDING_MODEL_ENV, DEFAULT_EMBEDDING_MODEL
         )
         self.temperature = temperature
-        # SDK model objects are built lazily and reused across calls so the
-        # underlying provider client (and its connection pool) is shared.
-        self._chat_model_obj = None
-        self._embedding_model_obj = None
+        self._openai_client = openai_client
 
     def is_available(self) -> bool:
         """Return ``True`` when an API key is configured."""
@@ -99,11 +91,10 @@ class AIClient:
         """Generate a response from a multi-turn message list.
 
         ``messages`` is a list of ``{"role": ..., "content": ...}`` dicts with
-        roles ``system`` | ``user`` | ``assistant``. AI SDK message objects are
-        also accepted and passed through unchanged.
+        roles ``system`` | ``user`` | ``assistant``.
         """
-        core_messages = [self._to_core_message(message) for message in messages]
-        return self._generate(messages=core_messages, temperature=temperature)
+        openai_messages = [self._to_openai_message(message) for message in messages]
+        return self._generate(messages=openai_messages, temperature=temperature)
 
     # -- Embeddings -----------------------------------------------------------
 
@@ -115,22 +106,28 @@ class AIClient:
             return []
 
         try:
-            result = embed_many(model=self._embedding_model(), values=list(texts))
+            result = self._client().embeddings.create(
+                model=self.embedding_model,
+                input=list(texts),
+            )
         except OpenAIError as error:
             raise AIClientError(f"OpenAI embedding request failed: {error}") from error
 
-        return result.embeddings
+        return [item.embedding for item in result.data]
 
     def embed_query(self, text: str) -> list[float]:
         """Embed a single query string."""
         self._ensure_available()
 
         try:
-            result = embed(model=self._embedding_model(), value=text)
+            result = self._client().embeddings.create(
+                model=self.embedding_model,
+                input=text,
+            )
         except OpenAIError as error:
             raise AIClientError(f"OpenAI embedding request failed: {error}") from error
 
-        return result.embedding
+        return result.data[0].embedding
 
     # -- Internals ------------------------------------------------------------
 
@@ -145,51 +142,40 @@ class AIClient:
         self._ensure_available()
 
         request: dict = {
-            "model": self._chat_model(),
+            "model": self.chat_model,
             "temperature": self.temperature if temperature is None else temperature,
         }
         if messages is not None:
             request["messages"] = messages
         else:
-            request["prompt"] = prompt
+            request["messages"] = [{"role": "user", "content": prompt or ""}]
             if system is not None:
-                request["system"] = system
+                request["messages"].insert(0, {"role": "system", "content": system})
 
         try:
-            result = generate_text(**request)
+            result = self._client().chat.completions.create(**request)
         except OpenAIError as error:
             raise AIClientError(f"OpenAI request failed: {error}") from error
 
-        text = (result.text or "").strip()
+        text = (result.choices[0].message.content or "").strip()
         if not text:
             raise AIClientError("OpenAI response did not include any text content")
         return text
 
-    def _to_core_message(self, message):
-        if not isinstance(message, dict):
-            return message  # already an AI SDK message object
-
+    def _to_openai_message(self, message: ChatMessage) -> ChatMessage:
         role = message.get("role")
-        message_type = _ROLE_TO_MESSAGE.get(role)
-        if message_type is None:
+        if role not in _SUPPORTED_ROLES:
             raise AIClientError(f"Unsupported chat role: {role!r}")
-        return message_type(content=message.get("content", ""))
+        return {"role": role, "content": message.get("content", "")}
 
     def _ensure_available(self) -> None:
         if not self.is_available():
             raise AIClientError(f"{API_KEY_ENV} is not set")
 
-    def _chat_model(self):
-        if self._chat_model_obj is None:
-            self._chat_model_obj = openai(self.chat_model, api_key=self.api_key)
-        return self._chat_model_obj
-
-    def _embedding_model(self):
-        if self._embedding_model_obj is None:
-            self._embedding_model_obj = openai.embedding(
-                self.embedding_model, api_key=self.api_key
-            )
-        return self._embedding_model_obj
+    def _client(self):
+        if self._openai_client is None:
+            self._openai_client = OpenAI(api_key=self.api_key)
+        return self._openai_client
 
 
 @lru_cache(maxsize=1)

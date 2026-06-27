@@ -12,17 +12,16 @@ const DEFAULT_DESKMATE_API_BASE_URL = 'http://127.0.0.1:8000'
  * Server-side mascot chat entry point.
  *
  * The renderer talks to this through IPC. The Python FastAPI backend handles
- * RAG + OpenAI, so the Electron main process only forwards the prompt to
- * /chat and returns the answer to the mascot UI.
+ * RAG + OpenAI, so the Electron main process forwards the prompt, conversation
+ * history and local activity context to /chat and returns the answer to the
+ * mascot UI.
  */
 export async function sendMascotChatMessage(
   request: MascotChatRequest,
   context?: MascotChatContext
 ): Promise<MascotChatResponse> {
-  const baseURL = process.env['DESKMATE_CHAT_BASE_URL']?.trim() || DEFAULT_DESKMATE_API_BASE_URL
-  const createdAt = new Date().toISOString()
-
-  const response = await fetch(`${trimTrailingSlash(baseURL)}/chat`, {
+  const baseURL = getChatBaseUrl()
+  const response = await fetch(`${baseURL}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -30,18 +29,30 @@ export async function sendMascotChatMessage(
     body: JSON.stringify(buildChatApiRequest(request, context))
   })
 
+  const responseText = await response.text()
+
   if (!response.ok) {
-    throw new Error(await buildChatApiErrorMessage(response))
+    throw new Error(buildHttpErrorMessage(response.status, responseText))
   }
 
-  const value: unknown = await response.json()
-  const apiResponse = parseDeskMateChatApiResponse(value)
+  const parsedResponse = parseJsonResponse(responseText)
+  const chatResponse = parseDeskMateChatApiResponse(parsedResponse)
+  const createdAt = new Date().toISOString()
 
   return {
-    message: apiResponse.answer,
-    motion: 'happy',
+    message: chatResponse.answer,
+    motion: chatResponse.used_llm ? 'happy' : 'liked',
     createdAt
   }
+}
+
+function getChatBaseUrl(): string {
+  const baseURL =
+    process.env['DESKMATE_CHAT_BASE_URL']?.trim() ||
+    process.env['DESKMATE_LOCAL_CHAT_BASE_URL']?.trim() ||
+    DEFAULT_DESKMATE_API_BASE_URL
+
+  return baseURL.replace(/\/+$/, '')
 }
 
 function buildChatApiRequest(request: MascotChatRequest, context?: MascotChatContext) {
@@ -67,10 +78,23 @@ function buildChatApiRequest(request: MascotChatRequest, context?: MascotChatCon
   }
 }
 
-async function buildChatApiErrorMessage(response: Response): Promise<string> {
-  const body = await response.text()
-  const details = body ? ` ${body}` : ''
-  return `DeskMate chat API request failed with ${response.status}.${details}`
+function buildHttpErrorMessage(status: number, responseText: string): string {
+  const trimmedResponseText = responseText.trim()
+
+  if (trimmedResponseText.length === 0) {
+    return `Mascot chat request failed with status ${status}`
+  }
+
+  return `Mascot chat request failed with status ${status}: ${trimmedResponseText}`
+}
+
+function parseJsonResponse(responseText: string): unknown {
+  if (responseText.trim().length === 0) {
+    throw new Error('Mascot chat response was empty')
+  }
+
+  const parsed: unknown = JSON.parse(responseText)
+  return parsed
 }
 
 function parseDeskMateChatApiResponse(value: unknown): DeskMateChatApiResponse {
@@ -117,8 +141,4 @@ function parseRetrievedDocument(value: unknown): DeskMateRetrievedDocument {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, '')
 }

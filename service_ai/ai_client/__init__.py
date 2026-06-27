@@ -1,6 +1,6 @@
-"""Reusable AI client for service_ai, built on the Python AI SDK.
+"""Reusable AI client for service_ai, built on the OpenAI Python SDK.
 
-See https://pythonaisdk.mintlify.app/
+See https://github.com/openai/openai-python
 """
 
 from .client import AIClient, AIClientError, ChatMessage, get_ai_client

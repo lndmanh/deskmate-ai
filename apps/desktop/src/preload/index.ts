@@ -37,9 +37,17 @@ export interface ActivityApi {
   onEvent(callback: (event: WorkEvent) => void): () => void
 }
 
+export interface OnboardingApi {
+  read(): Promise<unknown | null>
+  write(data: unknown): Promise<{ path: string }>
+  clear(): Promise<{ path: string }>
+  getPath(): Promise<string>
+}
+
 export interface DeskMateApi {
   activity: ActivityApi
   mascotChat: MascotChatApi
+  onboarding: OnboardingApi
 }
 
 export interface MascotChatApi {
@@ -74,8 +82,15 @@ const mascotChat: MascotChatApi = {
   sendMessage: (request) => ipcRenderer.invoke(CHAT_CHANNELS.sendMascotMessage, request)
 }
 
+const onboarding: OnboardingApi = {
+  read: () => ipcRenderer.invoke('onboarding:read'),
+  write: (data) => ipcRenderer.invoke('onboarding:write', data),
+  clear: () => ipcRenderer.invoke('onboarding:clear'),
+  getPath: () => ipcRenderer.invoke('onboarding:path')
+}
+
 // Custom APIs for renderer
-const api: DeskMateApi = { activity, mascotChat }
+const api: DeskMateApi = { activity, mascotChat, onboarding }
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

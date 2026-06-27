@@ -1,6 +1,7 @@
+<script setup lang="ts">
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow.vue'
+</script>
+
 <template>
-    <div>
-        <h1>Onboarding</h1>
-        <p>Welcome to our app!</p>
-    </div>
+  <OnboardingFlow />
 </template>

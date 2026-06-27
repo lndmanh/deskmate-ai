@@ -12,6 +12,5 @@ mediapipe>=0.10.0
 numpy>=1.26.0
 Pillow>=10.0.0
 
-# AI client — chat completions + embeddings (https://pythonaisdk.mintlify.app/)
-ai-sdk-python>=0.1.1
+# AI client — chat completions + embeddings
 openai>=1.0.0
