@@ -44,7 +44,13 @@ const activity = {
 const mascotChat = {
   sendMessage: (request) => electron.ipcRenderer.invoke(CHAT_CHANNELS.sendMascotMessage, request)
 };
-const api = { activity, mascotChat };
+const onboarding = {
+  read: () => electron.ipcRenderer.invoke("onboarding:read"),
+  write: (data) => electron.ipcRenderer.invoke("onboarding:write", data),
+  clear: () => electron.ipcRenderer.invoke("onboarding:clear"),
+  getPath: () => electron.ipcRenderer.invoke("onboarding:path")
+};
+const api = { activity, mascotChat, onboarding };
 if (process.contextIsolated) {
   try {
     electron.contextBridge.exposeInMainWorld("electron", preload.electronAPI);

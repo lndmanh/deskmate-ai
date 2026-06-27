@@ -473,8 +473,6 @@ watch(
   { immediate: true }
 )
 
-watch([volume, isMuted, videoSrc], syncVolume)
-
 function setTheme(preference: ThemePreference): void {
   themePreference.value = preference
 }
@@ -649,6 +647,9 @@ watch([volume, isMuted, videoSrc], syncVolume)
         <VrmMascot />
       </div>
     </div>
+
+    <!-- Mascot chat -->
+    <MascotChatBar />
 
     <Dialog v-model:open="settingsOpen">
       <DialogContent class="max-h-[calc(100vh-2rem)] gap-0 overflow-hidden p-0 sm:max-w-[1040px]">

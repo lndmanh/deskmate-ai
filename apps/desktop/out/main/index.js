@@ -22,11 +22,10 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 const electron = require("electron");
-const path = require("path");
-const utils = require("@electron-toolkit/utils");
-const crypto = require("crypto");
-const child_process = require("child_process");
 const promises = require("fs/promises");
+const path = require("path");
+const child_process = require("child_process");
+const crypto = require("crypto");
 const icon = path.join(__dirname, "../../resources/icon.png");
 function msToIso(ms) {
   return new Date(ms).toISOString();
@@ -1537,25 +1536,30 @@ const CHAT_CHANNELS = {
 };
 const DEFAULT_DESKMATE_API_BASE_URL = "http://127.0.0.1:8000";
 async function sendMascotChatMessage(request, context) {
-  const baseURL = process.env["DESKMATE_CHAT_BASE_URL"]?.trim() || DEFAULT_DESKMATE_API_BASE_URL;
-  const createdAt = (/* @__PURE__ */ new Date()).toISOString();
-  const response = await fetch(`${trimTrailingSlash(baseURL)}/chat`, {
+  const baseURL = getChatBaseUrl();
+  const response = await fetch(`${baseURL}/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(buildChatApiRequest(request, context))
   });
+  const responseText = await response.text();
   if (!response.ok) {
-    throw new Error(await buildChatApiErrorMessage(response));
+    throw new Error(buildHttpErrorMessage(response.status, responseText));
   }
-  const value = await response.json();
-  const apiResponse = parseDeskMateChatApiResponse(value);
+  const parsedResponse = parseJsonResponse(responseText);
+  const chatResponse = parseDeskMateChatApiResponse(parsedResponse);
+  const createdAt = (/* @__PURE__ */ new Date()).toISOString();
   return {
-    message: apiResponse.answer,
-    motion: "happy",
+    message: chatResponse.answer,
+    motion: chatResponse.used_llm ? "happy" : "liked",
     createdAt
   };
+}
+function getChatBaseUrl() {
+  const baseURL = process.env["DESKMATE_CHAT_BASE_URL"]?.trim() || process.env["DESKMATE_LOCAL_CHAT_BASE_URL"]?.trim() || DEFAULT_DESKMATE_API_BASE_URL;
+  return baseURL.replace(/\/+$/, "");
 }
 function buildChatApiRequest(request, context) {
   const history = request.history?.map((message) => ({
@@ -1577,10 +1581,19 @@ function buildChatApiRequest(request, context) {
     }
   };
 }
-async function buildChatApiErrorMessage(response) {
-  const body = await response.text();
-  const details = body ? ` ${body}` : "";
-  return `DeskMate chat API request failed with ${response.status}.${details}`;
+function buildHttpErrorMessage(status, responseText) {
+  const trimmedResponseText = responseText.trim();
+  if (trimmedResponseText.length === 0) {
+    return `Mascot chat request failed with status ${status}`;
+  }
+  return `Mascot chat request failed with status ${status}: ${trimmedResponseText}`;
+}
+function parseJsonResponse(responseText) {
+  if (responseText.trim().length === 0) {
+    throw new Error("Mascot chat response was empty");
+  }
+  const parsed = JSON.parse(responseText);
+  return parsed;
 }
 function parseDeskMateChatApiResponse(value) {
   if (!isRecord(value)) {
@@ -1611,9 +1624,6 @@ function parseRetrievedDocument(value) {
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function trimTrailingSlash(value) {
-  return value.replace(/\/+$/, "");
 }
 const MS_PER_MINUTE = 6e4;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
@@ -1719,6 +1729,42 @@ function formatDuration(milliseconds) {
   return `${hours} giờ ${minutes} phút`;
 }
 const activityTracker = createActivityTracker();
+function getOnboardingFilePath() {
+  return path.join(electron.app.getPath("userData"), "onboarding.json");
+}
+async function readOnboardingFile() {
+  try {
+    const content = await promises.readFile(getOnboardingFilePath(), "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+async function writeOnboardingFile(data) {
+  const path2 = getOnboardingFilePath();
+  await promises.mkdir(electron.app.getPath("userData"), { recursive: true });
+  await promises.writeFile(path2, `${JSON.stringify(data, null, 2)}
+`, "utf-8");
+  return { path: path2 };
+}
+async function clearOnboardingFile() {
+  const path2 = getOnboardingFilePath();
+  try {
+    await promises.unlink(path2);
+  } catch {
+  }
+  return { path: path2 };
+}
+let postureProcess = null;
+function startPostureTracking() {
+  const scriptPath = path.join(__dirname, "../../../../service_ai/main.py");
+  postureProcess = child_process.spawn("python", [scriptPath], {
+    cwd: path.join(__dirname, "../../../../service_ai"),
+    stdio: "inherit"
+  });
+  postureProcess.on("error", (err) => console.error("[Posture] Failed to start:", err));
+  postureProcess.on("exit", (code) => console.log("[Posture] Exited with code:", code));
+}
 function createWindow() {
   const mainWindow = new electron.BrowserWindow({
     width: 900,
@@ -1738,21 +1784,36 @@ function createWindow() {
     electron.shell.openExternal(details.url);
     return { action: "deny" };
   });
-  if (utils.is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+  if (process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
     mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 }
 electron.app.whenReady().then(() => {
-  utils.electronApp.setAppUserModelId("com.electron");
+  if (process.platform === "win32") {
+    electron.app.setAppUserModelId("com.electron");
+  }
   electron.app.on("browser-window-created", (_, window) => {
-    utils.optimizer.watchWindowShortcuts(window);
+    window.webContents.on("before-input-event", (event, input) => {
+      if (input.type === "keyDown" && input.code === "F12") {
+        window.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    });
   });
-  electron.ipcMain.on("ping", () => console.log("pong"));
+  electron.ipcMain.handle("onboarding:read", readOnboardingFile);
+  electron.ipcMain.handle("onboarding:write", (_, data) => writeOnboardingFile(data));
+  electron.ipcMain.handle("onboarding:clear", clearOnboardingFile);
+  electron.ipcMain.handle("onboarding:path", () => getOnboardingFilePath());
   registerActivityIpc(electron.ipcMain, activityTracker, () => electron.BrowserWindow.getAllWindows());
   registerChatIpc(electron.ipcMain, activityTracker);
   createWindow();
+  try {
+    startPostureTracking();
+  } catch (err) {
+    console.error("[Posture] Could not start posture tracking:", err);
+  }
   electron.app.on("activate", function() {
     if (electron.BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -1764,4 +1825,5 @@ electron.app.on("window-all-closed", () => {
 });
 electron.app.on("before-quit", () => {
   void activityTracker.dispose();
+  postureProcess?.kill();
 });

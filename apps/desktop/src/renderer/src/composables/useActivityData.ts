@@ -110,15 +110,31 @@ function init(): void {
   if (initialised) return
   initialised = true
 
-  // Live status pushes; refresh today (and the viewed day if it is today).
-  window.api.activity.onUpdate((next) => {
-    status.value = next
-    if (!next.running) return
-    void window.api.activity.getToday().then((rollup) => {
-      today.value = rollup
-      if (selectedDate.value === rollup.date) viewedDay.value = rollup
+  // The activity bridge is injected by Electron's preload. If it is missing
+  // (preload failed to load, or the renderer is running outside Electron) we
+  // must NOT throw here: this runs synchronously inside component setup, so an
+  // exception would tear down the whole page (toolbar, mascot, etc.) instead of
+  // just leaving the activity panels empty.
+  const activityBridge = window.api?.activity
+  if (!activityBridge) {
+    errorMessage.value = 'Activity tracker is unavailable.'
+    return
+  }
+
+  try {
+    // Live status pushes; refresh today (and the viewed day if it is today).
+    activityBridge.onUpdate((next) => {
+      status.value = next
+      if (!next.running) return
+      void activityBridge.getToday().then((rollup) => {
+        today.value = rollup
+        if (selectedDate.value === rollup.date) viewedDay.value = rollup
+      })
     })
-  })
+  } catch (error) {
+    errorMessage.value = toMessage(error)
+    return
+  }
 
   void refresh()
 }
