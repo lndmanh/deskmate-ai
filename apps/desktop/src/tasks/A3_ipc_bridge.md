@@ -1,99 +1,131 @@
 # Task A3 — IPC Bridge (Main ↔ Renderer)
 
-**Priority:** CRITICAL  
+**Priority:** CRITICAL — app không chạy được nếu thiếu  
 **Model:** Sonnet | **Effort:** think  
-**Blocked by:** A2  
-**Files chính:** `src/main/features/chat/ipc.ts`, `src/preload/index.ts`, `src/preload/index.d.ts`
+**Blocked by:** A2 ✅ (đã xong)  
+**Files chính:** `src/main/features/chat/ipc.ts`, `src/preload/index.ts`, `src/preload/index.d.ts`, `src/main/index.ts`
 
-## Goal
+---
 
-Kết nối `ChatClient` (main process) với renderer qua Electron IPC.  
-Renderer gọi `window.chatAPI.send()` → main process stream → renderer nhận chunks qua `window.chatAPI.onChunk()`.
+## Trạng thái hiện tại (sau khi pull)
 
-## IPC Event Names
+| File | Trạng thái |
+|---|---|
+| `src/main/features/chat/client.ts` | ✅ Xong |
+| `src/main/features/chat/types.ts` | ✅ Xong |
+| `src/renderer/src/composables/useChat.ts` | ✅ Xong — đang gọi `window.chatAPI` nhưng chưa tồn tại |
+| `src/preload/index.ts` | ❌ Vẫn là `api = {}` — chưa expose chatAPI |
+| `src/main/features/chat/ipc.ts` | ❌ Chưa có |
+| `src/main/index.ts` | ❌ Chưa gọi `registerChatIpcHandlers` |
+
+---
+
+## Lưu ý quan trọng từ code thực tế
+
+`client.ts` đã dùng AI SDK v7 đúng:
+- `maxOutputTokens` (không phải `maxTokens`)
+- `usage.inputTokens` / `usage.outputTokens` (không phải `promptTokens` / `completionTokens`)
+
+`useChat.ts` import types từ:
+```typescript
+import type { ChatMessage, DeskMateContext } from '../../../main/features/chat/types'
+```
+→ `ipc.ts` và `preload` phải import từ cùng path này.
+
+---
+
+## IPC Event Constants — thêm vào `types.ts`
+
+Mở `src/main/features/chat/types.ts` và append:
 
 ```typescript
-// Dùng constants để tránh typo
 export const CHAT_IPC = {
-  SEND:         'chat:send',         // renderer → main
-  ABORT:        'chat:abort',        // renderer → main
-  CHUNK:        'chat:chunk',        // main → renderer
-  DONE:         'chat:done',         // main → renderer
-  ERROR:        'chat:error',        // main → renderer
-  VALIDATE_KEY: 'chat:validate-key', // renderer → main (two-way invoke)
-  SAVE_KEY:     'chat:save-key',     // renderer → main (two-way invoke)
-  HAS_KEY:      'chat:has-key',      // renderer → main (two-way invoke)
+  SEND:         'chat:send',
+  ABORT:        'chat:abort',
+  CHUNK:        'chat:chunk',
+  DONE:         'chat:done',
+  ERROR:        'chat:error',
+  HAS_KEY:      'chat:has-key',
+  SAVE_KEY:     'chat:save-key',
+  VALIDATE_KEY: 'chat:validate-key',
 } as const
 ```
 
-## Files to Create
+---
 
-```
-src/main/features/chat/
-  ipc.ts        ← registerChatIpcHandlers()
-```
-
-## Files to Modify
-
-```
-src/main/index.ts       ← call registerChatIpcHandlers(mainWindow)
-src/preload/index.ts    ← expose chatAPI to renderer
-src/preload/index.d.ts  ← add Window.chatAPI types
-```
-
-## ipc.ts
+## File to Create: `src/main/features/chat/ipc.ts`
 
 ```typescript
-// src/main/features/chat/ipc.ts
 import { ipcMain, BrowserWindow } from 'electron'
 import { ChatClient } from './client'
-import { ApiKeyStore } from './api-key-store'   // từ Task A5
 import { CHAT_IPC } from './types'
 import type { ChatRequest } from './types'
 
 const chatClient = new ChatClient()
-const keyStore = new ApiKeyStore()
+
+// Stub — thay bằng ApiKeyStore từ A5 khi có
+let _apiKey: string | null = process.env['OPENAI_API_KEY'] ?? null
 
 export function registerChatIpcHandlers(win: BrowserWindow): void {
 
-  // renderer → main: start a new stream
-  ipcMain.on(CHAT_IPC.SEND, async (_event, request: ChatRequest) => {
-    const apiKey = keyStore.getKey()
-    if (!apiKey) {
+  ipcMain.on(CHAT_IPC.SEND, (_event, request: ChatRequest) => {
+    if (!_apiKey) {
       win.webContents.send(CHAT_IPC.ERROR, {
         streamId: request.streamId,
-        error: 'API key chưa được thiết lập.',
+        error: 'API key chưa được thiết lập. Vào Cài đặt để thêm key.',
         partialText: '',
       })
       return
     }
-
-    await chatClient.stream(apiKey, request, {
-      onChunk: (event) => win.webContents.send(CHAT_IPC.CHUNK, event),
-      onDone:  (event) => win.webContents.send(CHAT_IPC.DONE, event),
-      onError: (event) => win.webContents.send(CHAT_IPC.ERROR, event),
+    chatClient.stream(_apiKey, request, {
+      onChunk: (e) => win.webContents.send(CHAT_IPC.CHUNK, e),
+      onDone:  (e) => win.webContents.send(CHAT_IPC.DONE, e),
+      onError: (e) => win.webContents.send(CHAT_IPC.ERROR, e),
     })
   })
 
-  // renderer → main: abort stream
   ipcMain.on(CHAT_IPC.ABORT, (_event, streamId: string) => {
     chatClient.abort(streamId)
   })
 
-  // renderer → main: check if key exists (invoke = two-way)
-  ipcMain.handle(CHAT_IPC.HAS_KEY, () => keyStore.hasKey())
+  // Stub handlers — sẽ được thay bằng ApiKeyStore (A5)
+  ipcMain.handle(CHAT_IPC.HAS_KEY, () => _apiKey !== null)
 
-  // renderer → main: save key
-  ipcMain.handle(CHAT_IPC.SAVE_KEY, (_event, key: string) => keyStore.saveKey(key))
-
-  // renderer → main: validate key by making a cheap API call
-  ipcMain.handle(CHAT_IPC.VALIDATE_KEY, async (_event, key: string) => {
-    return keyStore.validateKey(key)  // implemented in A5
+  ipcMain.handle(CHAT_IPC.SAVE_KEY, (_event, key: string) => {
+    _apiKey = key.trim()
   })
+
+  ipcMain.handle(CHAT_IPC.VALIDATE_KEY, async (_event, key: string) => {
+    if (!key.trim().startsWith('sk-')) {
+      return { valid: false, error: 'API key phải bắt đầu bằng sk-' }
+    }
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${key.trim()}` },
+        signal: AbortSignal.timeout(8000),
+      })
+      if (res.ok || res.status === 429) return { valid: true }
+      if (res.status === 401) return { valid: false, error: 'API key không đúng hoặc đã hết hạn.' }
+      return { valid: false, error: `Lỗi HTTP ${res.status}` }
+    } catch {
+      return { valid: false, error: 'Không thể kết nối đến OpenAI.' }
+    }
+  })
+}
+
+export function cleanupChatIpcHandlers(): void {
+  Object.values(CHAT_IPC).forEach((channel) => {
+    ipcMain.removeAllListeners(channel)
+  })
+  chatClient.abortAll()
 }
 ```
 
-## preload/index.ts — Replace the empty `api` object
+---
+
+## File to Modify: `src/preload/index.ts`
+
+Thay toàn bộ file:
 
 ```typescript
 import { contextBridge, ipcRenderer } from 'electron'
@@ -102,28 +134,28 @@ import { CHAT_IPC } from '../main/features/chat/types'
 import type { ChatRequest, StreamChunkEvent, StreamDoneEvent, StreamErrorEvent } from '../main/features/chat/types'
 
 const chatAPI = {
-  send: (request: ChatRequest) =>
+  send: (request: ChatRequest): void =>
     ipcRenderer.send(CHAT_IPC.SEND, request),
 
-  abort: (streamId: string) =>
+  abort: (streamId: string): void =>
     ipcRenderer.send(CHAT_IPC.ABORT, streamId),
 
-  onChunk: (cb: (event: StreamChunkEvent) => void) => {
-    const handler = (_: unknown, event: StreamChunkEvent) => cb(event)
-    ipcRenderer.on(CHAT_IPC.CHUNK, handler)
-    return () => ipcRenderer.removeListener(CHAT_IPC.CHUNK, handler)   // cleanup fn
+  onChunk: (cb: (event: StreamChunkEvent) => void): (() => void) => {
+    const fn = (_: Electron.IpcRendererEvent, e: StreamChunkEvent): void => cb(e)
+    ipcRenderer.on(CHAT_IPC.CHUNK, fn)
+    return () => ipcRenderer.removeListener(CHAT_IPC.CHUNK, fn)
   },
 
-  onDone: (cb: (event: StreamDoneEvent) => void) => {
-    const handler = (_: unknown, event: StreamDoneEvent) => cb(event)
-    ipcRenderer.on(CHAT_IPC.DONE, handler)
-    return () => ipcRenderer.removeListener(CHAT_IPC.DONE, handler)
+  onDone: (cb: (event: StreamDoneEvent) => void): (() => void) => {
+    const fn = (_: Electron.IpcRendererEvent, e: StreamDoneEvent): void => cb(e)
+    ipcRenderer.on(CHAT_IPC.DONE, fn)
+    return () => ipcRenderer.removeListener(CHAT_IPC.DONE, fn)
   },
 
-  onError: (cb: (event: StreamErrorEvent) => void) => {
-    const handler = (_: unknown, event: StreamErrorEvent) => cb(event)
-    ipcRenderer.on(CHAT_IPC.ERROR, handler)
-    return () => ipcRenderer.removeListener(CHAT_IPC.ERROR, handler)
+  onError: (cb: (event: StreamErrorEvent) => void): (() => void) => {
+    const fn = (_: Electron.IpcRendererEvent, e: StreamErrorEvent): void => cb(e)
+    ipcRenderer.on(CHAT_IPC.ERROR, fn)
+    return () => ipcRenderer.removeListener(CHAT_IPC.ERROR, fn)
   },
 
   hasKey: (): Promise<boolean> =>
@@ -149,7 +181,11 @@ if (process.contextIsolated) {
 }
 ```
 
-## preload/index.d.ts
+---
+
+## File to Modify: `src/preload/index.d.ts`
+
+Thay toàn bộ file:
 
 ```typescript
 import { ElectronAPI } from '@electron-toolkit/preload'
@@ -159,32 +195,54 @@ declare global {
   interface Window {
     electron: ElectronAPI
     chatAPI: {
-      send: (request: ChatRequest) => void
-      abort: (streamId: string) => void
-      onChunk: (cb: (event: StreamChunkEvent) => void) => () => void
-      onDone:  (cb: (event: StreamDoneEvent)  => void) => () => void
-      onError: (cb: (event: StreamErrorEvent) => void) => () => void
-      hasKey:     () => Promise<boolean>
-      saveKey:    (key: string) => Promise<void>
-      validateKey:(key: string) => Promise<{ valid: boolean; error?: string }>
+      send:        (request: ChatRequest) => void
+      abort:       (streamId: string) => void
+      onChunk:     (cb: (event: StreamChunkEvent) => void) => () => void
+      onDone:      (cb: (event: StreamDoneEvent)  => void) => () => void
+      onError:     (cb: (event: StreamErrorEvent) => void) => () => void
+      hasKey:      () => Promise<boolean>
+      saveKey:     (key: string) => Promise<void>
+      validateKey: (key: string) => Promise<{ valid: boolean; error?: string }>
     }
   }
 }
 ```
 
-## src/main/index.ts — Add one line after createWindow()
+---
+
+## File to Modify: `src/main/index.ts`
+
+Thêm 2 dòng:
 
 ```typescript
-import { registerChatIpcHandlers } from './features/chat/ipc'
+import { registerChatIpcHandlers, cleanupChatIpcHandlers } from './features/chat/ipc'
 
-// Inside app.whenReady():
+// Sau createWindow():
 const mainWindow = createWindow()
 registerChatIpcHandlers(mainWindow)
+
+// Trong app.on('window-all-closed') hoặc before-quit:
+app.on('before-quit', () => cleanupChatIpcHandlers())
 ```
+
+---
+
+## Cũng cần: Xoá test comment trong `client.ts`
+
+Xoá block comment ở cuối `client.ts`:
+```typescript
+// TEST — remove before commit
+// const client = new ChatClient()
+// ...
+```
+
+---
 
 ## Definition of Done
 
-- [ ] `window.chatAPI` có đầy đủ 7 methods trong renderer DevTools console
-- [ ] `onChunk` / `onDone` / `onError` đều trả về cleanup function (không leak listeners)
-- [ ] Gọi `window.chatAPI.send({...})` từ DevTools → thấy chunks log trong main process
+- [ ] `window.chatAPI` có đủ 7 methods khi inspect trong DevTools
+- [ ] `onChunk` / `onDone` / `onError` trả về cleanup function `() => void`
+- [ ] Gọi `window.chatAPI.send({...})` từ DevTools → chunks xuất hiện trong main process log
+- [ ] `OPENAI_API_KEY` env var hoạt động như fallback key tạm thời
 - [ ] `npx tsc --noEmit` không lỗi
+- [ ] Test comment đã xoá khỏi `client.ts`
