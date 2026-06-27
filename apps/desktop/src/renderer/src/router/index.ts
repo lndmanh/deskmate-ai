@@ -17,6 +17,11 @@ export const router = createRouter({
       path: '/onboarding',
       name: 'onboarding',
       component: () => import('@/pages/OnboardingView.vue')
+    },
+    {
+      path: '/activity-test',
+      name: 'activity-test',
+      component: () => import('@/pages/ActivityTestView.vue')
     }
   ]
 })
