@@ -11,10 +11,13 @@ from .schemas import (
     CalibrationResponse,
     ChatRequest,
     ChatResponseSchema,
+    DeleteEventsResponse,
+    EventRecordSchema,
     HealthResponse,
     MoodCheckInRequest,
     MoodCheckInResponse,
     MoodSummaryResponse,
+    PrivacyCountersResponse,
     RagSearchRequest,
     RagSearchResponse,
     ResetSessionResponse,
@@ -187,6 +190,48 @@ def mood_summary(limit: int = 20) -> MoodSummaryResponse:
         average_stress=summary.average_stress,
         mood_counts=summary.mood_counts,
     )
+
+
+@app.get("/events", response_model=list[EventRecordSchema])
+def list_events(
+    date: str | None = None,
+    type: str | None = None,
+    limit: int = 100,
+) -> list[EventRecordSchema]:
+    records = api_state.event_store.list_events(date=date, event_type=type, limit=limit)
+    return [
+        EventRecordSchema(
+            id=r.id,
+            timestamp=r.timestamp,
+            source=r.source,
+            type=r.type,
+            severity=r.severity,
+            confidence=r.confidence,
+            duration_seconds=r.duration_seconds,
+            metadata=r.metadata,
+        )
+        for r in records
+    ]
+
+
+@app.get("/events/privacy-counters", response_model=PrivacyCountersResponse)
+def get_privacy_counters() -> PrivacyCountersResponse:
+    c = api_state.event_store.privacy_counters()
+    return PrivacyCountersResponse(
+        webcam_processing=c.webcam_processing,
+        cloud_processing=c.cloud_processing,
+        raw_frames_stored=c.raw_frames_stored,
+        data_shared_with_employer=c.data_shared_with_employer,
+        posture_events_saved=c.posture_events_saved,
+        workday_events_saved=c.workday_events_saved,
+        nudge_events_saved=c.nudge_events_saved,
+    )
+
+
+@app.delete("/events", response_model=DeleteEventsResponse)
+def delete_events() -> DeleteEventsResponse:
+    api_state.event_store.delete_all()
+    return DeleteEventsResponse(ok=True, deleted=True)
 
 
 @app.post("/rag/search", response_model=RagSearchResponse)

@@ -159,3 +159,29 @@ class MoodSummaryResponse(BaseModel):
     average_energy: float | None = None
     average_stress: float | None = None
     mood_counts: dict[str, int]
+
+
+class EventRecordSchema(BaseModel):
+    id: str
+    timestamp: str
+    source: str
+    type: str
+    severity: str | None = None
+    confidence: float | None = None
+    duration_seconds: int | None = None
+    metadata: dict | None = None
+
+
+class PrivacyCountersResponse(BaseModel):
+    webcam_processing: str
+    cloud_processing: bool
+    raw_frames_stored: int
+    data_shared_with_employer: bool
+    posture_events_saved: int
+    workday_events_saved: int
+    nudge_events_saved: int
+
+
+class DeleteEventsResponse(BaseModel):
+    ok: bool
+    deleted: bool
