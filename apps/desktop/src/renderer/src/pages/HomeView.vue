@@ -3,6 +3,7 @@ import { Activity, Bell, Globe, Home, Settings } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import MascotChatBar from '@/components/mascot/MascotChatBar.vue'
 import VrmMascot from '@/components/mascot/VrmMascot.vue'
 import SpacePanel from '@/components/spaces/SpacePanel.vue'
 import { Button } from '@/components/ui/button'
@@ -142,5 +143,8 @@ watch([volume, isMuted, videoSrc], syncVolume)
         <VrmMascot />
       </div>
     </div>
+
+    <!-- Mascot chat -->
+    <MascotChatBar />
   </main>
 </template>
