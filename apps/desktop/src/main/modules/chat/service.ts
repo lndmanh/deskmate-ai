@@ -1,51 +1,112 @@
 import type { MascotChatRequest, MascotChatResponse } from './types'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
-
-/**
- * Server-side mascot chat entry point.
- *
- * The renderer talks to this through IPC. When the OpenAI-compatible backend is
- * ready, set DESKMATE_CHAT_BASE_URL to its API root, for example
- * http://localhost:8787/v1. Do not include /chat/completions here; the AI SDK
- * adds the chat endpoint path through openai.chat(...). If your local backend
- * ignores Authorization, DESKMATE_CHAT_API_KEY can stay unset.
- */
 export async function sendMascotChatMessage(
   request: MascotChatRequest
 ): Promise<MascotChatResponse> {
-  const apiKey =
-    process.env['DESKMATE_CHAT_API_KEY']?.trim() ||
-    process.env['OPENAI_API_KEY']?.trim() ||
-    'sk-noop'
-  const baseURL = process.env['DESKMATE_CHAT_BASE_URL']?.trim()
-  const model = process.env['DESKMATE_CHAT_MODEL']?.trim() || DEFAULT_MODEL
+  const baseURL = getChatBaseUrl()
+  const response = await fetch(`${baseURL}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ question: request.message })
+  })
+
+  const responseText = await response.text()
+
+  if (!response.ok) {
+    throw new Error(buildHttpErrorMessage(response.status, responseText))
+  }
+
+  const parsedResponse: unknown = parseJsonResponse(responseText)
+  const chatResponse = parseChatResponse(parsedResponse)
   const createdAt = new Date().toISOString()
 
-  if (!baseURL) {
-    return {
-      message: 'I can chat once the AI backend is connected.',
-      motion: 'happy',
-      createdAt
+  return {
+    message: chatResponse.answer,
+    motion: chatResponse.used_llm ? 'happy' : 'liked',
+    createdAt
+  }
+}
+
+function getChatBaseUrl(): string {
+  const baseURL =
+    process.env['DESKMATE_LOCAL_CHAT_BASE_URL']?.trim() ||
+    'http://127.0.0.1:8000'
+
+  return baseURL.replace(/\/+$/, '')
+}
+
+function buildHttpErrorMessage(status: number, responseText: string): string {
+  const trimmedResponseText = responseText.trim()
+
+  if (trimmedResponseText.length === 0) {
+    return `Mascot chat request failed with status ${status}`
+  }
+
+  return `Mascot chat request failed with status ${status}: ${trimmedResponseText}`
+}
+
+function parseJsonResponse(responseText: string): unknown {
+  if (responseText.trim().length === 0) {
+    throw new Error('Mascot chat response was empty')
+  }
+
+  const parsed: unknown = JSON.parse(responseText)
+
+  return parsed
+}
+
+interface ChatBackendResponse {
+  answer: string
+  used_llm: boolean
+  retrieved_documents: Array<{
+    source: string
+    title: string
+    content: string
+    score: number
+  }>
+}
+
+function parseChatResponse(value: unknown): ChatBackendResponse {
+  if (!isRecord(value)) {
+    throw new Error('Mascot chat response must be an object')
+  }
+
+  if (typeof value.answer !== 'string') {
+    throw new Error('Mascot chat response is missing answer')
+  }
+
+  if (typeof value.used_llm !== 'boolean') {
+    throw new Error('Mascot chat response is missing used_llm')
+  }
+
+  if (!Array.isArray(value.retrieved_documents)) {
+    throw new Error('Mascot chat response is missing retrieved_documents')
+  }
+
+  for (const document of value.retrieved_documents) {
+    if (!isRecord(document)) {
+      throw new Error('Mascot chat response contains an invalid retrieved document')
+    }
+
+    if (
+      typeof document.source !== 'string' ||
+      typeof document.title !== 'string' ||
+      typeof document.content !== 'string' ||
+      typeof document.score !== 'number'
+    ) {
+      throw new Error('Mascot chat response contains an invalid retrieved document')
     }
   }
 
-  const [{ createOpenAI }, { generateText }] = await Promise.all([
-    import('@ai-sdk/openai'),
-    import('ai')
-  ])
-
-  const openai = createOpenAI({ apiKey, baseURL })
-  const result = await generateText({
-    model: openai.chat(model),
-    system:
-      'You are DeskMate, a concise, warm desktop mascot. Reply like a helpful companion, not a generic assistant.',
-    prompt: request.message
-  })
-
   return {
-    message: result.text,
-    motion: 'happy',
-    createdAt
+    answer: value.answer,
+    used_llm: value.used_llm,
+    retrieved_documents: value.retrieved_documents
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }

@@ -47,11 +47,11 @@ export interface OnboardingApi {
 export interface DeskMateApi {
   activity: ActivityApi
   mascotChat: MascotChatApi
+  onboarding: OnboardingApi
 }
 
 export interface MascotChatApi {
   sendMessage(request: MascotChatRequest): Promise<MascotChatResponse>
-  onboarding: OnboardingApi
 }
 
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -82,10 +82,18 @@ const mascotChat: MascotChatApi = {
   sendMessage: (request) => ipcRenderer.invoke(CHAT_CHANNELS.sendMascotMessage, request)
 }
 
+const onboarding: OnboardingApi = {
+  read: () => ipcRenderer.invoke('onboarding:read'),
+  write: (data) => ipcRenderer.invoke('onboarding:write', data),
+  clear: () => ipcRenderer.invoke('onboarding:clear'),
+  getPath: () => ipcRenderer.invoke('onboarding:path')
+}
+
 // Custom APIs for renderer
-const api: DeskMateApi = { activity, onboarding, mascotChat }
+const api: DeskMateApi = { activity, mascotChat, onboarding }
 
 // Use `contextBridge` APIs to expose Electron APIs to
+// renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
