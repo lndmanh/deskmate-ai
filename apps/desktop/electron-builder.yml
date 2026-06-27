@@ -11,6 +11,9 @@ files:
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  # get-windows ships a native helper (Swift CLI on macOS, native addon on
+  # Windows/Linux) that must live outside the asar archive to be spawnable.
+  - '**/node_modules/get-windows/**'
 win:
   executableName: deskmate-ai
 nsis:

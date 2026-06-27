@@ -1,0 +1,63 @@
+import {
+  AppWindow,
+  Brain,
+  Building2,
+  Car,
+  Coffee,
+  Code2,
+  Flower2,
+  Footprints,
+  Gamepad2,
+  Gift,
+  HelpCircle,
+  Library,
+  type LucideIcon,
+  Mic2,
+  Music2,
+  Palette,
+  PawPrint,
+  Radio,
+  Rocket,
+  Snowflake,
+  Sparkles,
+  Star,
+  Tag,
+  Trees,
+  Umbrella,
+  Users,
+  Wand2,
+  Wind
+} from '@lucide/vue'
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  NATURE: Trees,
+  COFFEE: Coffee,
+  WINDOW: AppWindow,
+  SPRING: Flower2,
+  LIVE: Radio,
+  FALL: Wind,
+  BEACH: Umbrella,
+  CITY: Building2,
+  LOFI: Music2,
+  LIBRARY: Library,
+  SNOW: Snowflake,
+  ART: Palette,
+  MEDITATION: Sparkles,
+  COMMUTE: Car,
+  PET: PawPrint,
+  SPACE: Rocket,
+  PEOPLE: Users,
+  KPOP: Mic2,
+  CODE: Code2,
+  GAMES: Gamepad2,
+  CELEBRITY: Star,
+  BRAIN: Brain,
+  FANTASY: Wand2,
+  WALK: Footprints,
+  MYSTERY: HelpCircle,
+  HOLIDAY: Gift
+}
+
+export function getCategoryIcon(category: string): LucideIcon {
+  return CATEGORY_ICONS[category] ?? Tag
+}
