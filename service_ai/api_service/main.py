@@ -7,11 +7,14 @@ from .converters import posture_result_to_dict, to_chat_context, to_pose_frame
 from .schemas import (
     AnalyzePostureRequest,
     AnalyzePostureResponse,
+    BaselineComparisonResponse,
     CalibrationRequest,
     CalibrationResponse,
     ChatRequest,
     ChatResponseSchema,
     DeleteEventsResponse,
+    DemoStartStopResponse,
+    DemoStatusResponse,
     EventRecordSchema,
     HealthResponse,
     MoodCheckInRequest,
@@ -22,6 +25,7 @@ from .schemas import (
     RagSearchResponse,
     ResetSessionResponse,
     RetrievedDocumentResponse,
+    RiskStateResponse,
 )
 from .state import api_state
 
@@ -190,6 +194,70 @@ def mood_summary(limit: int = 20) -> MoodSummaryResponse:
         average_stress=summary.average_stress,
         mood_counts=summary.mood_counts,
     )
+
+
+@app.post("/demo/start", response_model=DemoStartStopResponse)
+def demo_start() -> DemoStartStopResponse:
+    api_state.demo_player.start()
+    return DemoStartStopResponse(ok=True, message="Demo mode started")
+
+
+@app.post("/demo/stop", response_model=DemoStartStopResponse)
+def demo_stop() -> DemoStartStopResponse:
+    api_state.demo_player.stop()
+    return DemoStartStopResponse(ok=True, message="Demo mode stopped")
+
+
+@app.get("/demo/status", response_model=DemoStatusResponse)
+def demo_status() -> DemoStatusResponse:
+    return DemoStatusResponse(
+        running=api_state.demo_player.is_running,
+        events_played=api_state.demo_player.events_played,
+    )
+
+
+def _baseline_to_schema(baseline: object | None) -> BaselineComparisonResponse | None:
+    if baseline is None:
+        return None
+    return BaselineComparisonResponse(
+        average_breaks_per_day=baseline.average_breaks_per_day,
+        average_active_time_minutes=baseline.average_active_time_minutes,
+        usual_fatigue_window=baseline.usual_fatigue_window,
+        posture_risk_usually_after_minutes=baseline.posture_risk_usually_after_minutes,
+        days_available=baseline.days_available,
+    )
+
+
+@app.get("/risk/current", response_model=RiskStateResponse)
+def risk_current() -> RiskStateResponse:
+    state = api_state.risk_engine.recompute()
+    return RiskStateResponse(
+        posture_strain=state.posture_strain,
+        break_debt=state.break_debt,
+        fatigue_risk=state.fatigue_risk,
+        desk_health_score=state.desk_health_score,
+        longest_session_minutes=state.longest_session_minutes,
+        active_time_minutes=state.active_time_minutes,
+        break_count=state.break_count,
+        high_risk_period=state.high_risk_period,
+        baseline=_baseline_to_schema(state.baseline),
+        computed_at=state.computed_at,
+    )
+
+
+@app.get("/risk/baseline", response_model=BaselineComparisonResponse)
+def risk_baseline() -> BaselineComparisonResponse:
+    state = api_state.risk_engine.recompute()
+    schema = _baseline_to_schema(state.baseline)
+    if schema is None:
+        return BaselineComparisonResponse(
+            average_breaks_per_day=0.0,
+            average_active_time_minutes=0.0,
+            usual_fatigue_window=None,
+            posture_risk_usually_after_minutes=None,
+            days_available=0,
+        )
+    return schema
 
 
 @app.get("/events", response_model=list[EventRecordSchema])

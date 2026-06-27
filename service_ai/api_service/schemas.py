@@ -185,3 +185,34 @@ class PrivacyCountersResponse(BaseModel):
 class DeleteEventsResponse(BaseModel):
     ok: bool
     deleted: bool
+
+
+class DemoStartStopResponse(BaseModel):
+    ok: bool
+    message: str
+
+
+class DemoStatusResponse(BaseModel):
+    running: bool
+    events_played: int
+
+
+class BaselineComparisonResponse(BaseModel):
+    average_breaks_per_day: float
+    average_active_time_minutes: float
+    usual_fatigue_window: str | None = None
+    posture_risk_usually_after_minutes: int | None = None
+    days_available: int
+
+
+class RiskStateResponse(BaseModel):
+    posture_strain: str
+    break_debt: str
+    fatigue_risk: str
+    desk_health_score: int
+    longest_session_minutes: int
+    active_time_minutes: int
+    break_count: int
+    high_risk_period: str | None = None
+    baseline: BaselineComparisonResponse | None = None
+    computed_at: str

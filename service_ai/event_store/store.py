@@ -122,9 +122,7 @@ class EventStore:
             where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
             params.append(limit)
             rows = self._conn.execute(
-                f"SELECT id, timestamp, source, type, "
-                f"severity, confidence, duration_seconds, metadata "
-                f"FROM {table} {where} ORDER BY timestamp DESC LIMIT ?",
+                f"SELECT * FROM {table} {where} ORDER BY timestamp DESC LIMIT ?",
                 params,
             ).fetchall()
 
