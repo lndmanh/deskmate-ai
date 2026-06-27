@@ -24,11 +24,6 @@ export const router = createRouter({
       component: () => import('@/pages/ActivityTestView.vue')
     },
     {
-      path: '/landing',
-      name: 'landing',
-      component: () => import('@/pages/LandingView.vue')
-    },
-    {
       path: '/report',
       name: 'report',
       component: () => import('@/pages/ReportView.vue')
