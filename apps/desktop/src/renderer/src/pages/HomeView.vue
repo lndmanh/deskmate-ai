@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 
 import ActivityDashboard from '@/components/activity/ActivityDashboard.vue'
 import ActivitySummaryPopover from '@/components/activity/ActivitySummaryPopover.vue'
+import MascotChatBar from '@/components/mascot/MascotChatBar.vue'
 import VrmMascot from '@/components/mascot/VrmMascot.vue'
 import PomodoroPopover from '@/components/pomodoro/PomodoroPopover.vue'
 import SpacePanel from '@/components/spaces/SpacePanel.vue'
@@ -216,5 +217,8 @@ watch([volume, isMuted, videoSrc], syncVolume)
         <VrmMascot />
       </div>
     </div>
+
+    <!-- Mascot chat -->
+    <MascotChatBar />
   </main>
 </template>

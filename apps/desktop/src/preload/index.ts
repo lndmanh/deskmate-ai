@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { ACTIVITY_CHANNELS } from '../main/modules/activity-tracker/channels'
+import { CHAT_CHANNELS } from '../main/modules/chat/channels'
 import type {
   BackfillOptions,
   BackfillResult,
@@ -9,6 +10,7 @@ import type {
   TrackerStatus,
   WorkEvent
 } from '../main/modules/activity-tracker/types'
+import type { MascotChatRequest, MascotChatResponse } from '../main/modules/chat/types'
 
 export interface ActivityApi {
   /** Begin tracking; resolves with the resulting status. */
@@ -37,6 +39,11 @@ export interface ActivityApi {
 
 export interface DeskMateApi {
   activity: ActivityApi
+  mascotChat: MascotChatApi
+}
+
+export interface MascotChatApi {
+  sendMessage(request: MascotChatRequest): Promise<MascotChatResponse>
 }
 
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -63,8 +70,12 @@ const activity: ActivityApi = {
   onEvent: (callback) => subscribe(ACTIVITY_CHANNELS.event, callback)
 }
 
+const mascotChat: MascotChatApi = {
+  sendMessage: (request) => ipcRenderer.invoke(CHAT_CHANNELS.sendMascotMessage, request)
+}
+
 // Custom APIs for renderer
-const api: DeskMateApi = { activity }
+const api: DeskMateApi = { activity, mascotChat }
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
