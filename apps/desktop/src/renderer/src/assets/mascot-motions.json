@@ -1,0 +1,209 @@
+{
+  "defaultPersonality": "standard",
+  "personalities": [
+    {
+      "name": "standard",
+      "label": "Standard",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "standard/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "standard/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "innocent",
+      "label": "Innocent",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "innocent/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/womanly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "innocent/liked.vrma",
+          "loop": false
+        },
+        {
+          "name": "happy",
+          "file": "innocent/happy.vrma",
+          "loop": false
+        },
+        {
+          "name": "laughing",
+          "file": "innocent/laughing.vrma",
+          "loop": false
+        },
+        {
+          "name": "stretching",
+          "file": "innocent/stretching.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "cool",
+      "label": "Cool",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "cool/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "cool/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "ladylike",
+      "label": "Ladylike",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "ladylike/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/womanly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "ladylike/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "shy",
+      "label": "Shy",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "shy/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/womanly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "shy/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "energetic",
+      "label": "Energetic",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "energetic/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "energetic/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "flamboyant",
+      "label": "Flamboyant",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "flamboyant/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "flamboyant/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "gentleman",
+      "label": "Gentleman",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "gentleman/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "gentleman/liked.vrma",
+          "loop": false
+        }
+      ]
+    },
+    {
+      "name": "powerful",
+      "label": "Powerful",
+      "motions": [
+        {
+          "name": "waiting",
+          "file": "powerful/waiting.vrma",
+          "loop": true
+        },
+        {
+          "name": "appearing",
+          "file": "common/manly/appearing.vrma",
+          "loop": false
+        },
+        {
+          "name": "liked",
+          "file": "powerful/liked.vrma",
+          "loop": false
+        }
+      ]
+    }
+  ]
+}
