@@ -1,11 +1,12 @@
+from ai_client import get_ai_client
+
 from .document_loader import load_markdown_documents
-from .openai_embeddings import OpenAiEmbeddingClient
 from .vector_store import JsonVectorStore, VectorRecord
 
 
 def main() -> None:
     documents = load_markdown_documents("knowledge_base")
-    embedding_client = OpenAiEmbeddingClient()
+    embedding_client = get_ai_client()
 
     if not embedding_client.is_available():
         raise SystemExit("OPENAI_API_KEY chưa được set. Không thể tạo vector index.")
@@ -13,7 +14,7 @@ def main() -> None:
     if not documents:
         raise SystemExit("Không tìm thấy tài liệu trong knowledge_base.")
 
-    print(f"Indexing {len(documents)} knowledge chunks with {embedding_client.model}...")
+    print(f"Indexing {len(documents)} knowledge chunks with {embedding_client.embedding_model}...")
 
     texts = [f"{document.title}\n\n{document.content}" for document in documents]
     embeddings = embedding_client.embed_texts(texts)

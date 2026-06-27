@@ -1,7 +1,8 @@
 from pathlib import Path
 
+from ai_client import get_ai_client
+
 from .local_markdown_store import LocalMarkdownRagStore
-from .openai_embeddings import OpenAiEmbeddingClient
 from .query_expander import expand_query, infer_topic, source_topic_bonus
 from .types import RetrievedDocument
 from .vector_store import JsonVectorStore
@@ -14,7 +15,7 @@ class HybridRagRetriever:
         index_path: str | Path = "rag_index/knowledge_base_vectors.json",
     ) -> None:
         self.bm25_store = LocalMarkdownRagStore(knowledge_base_dir)
-        self.embedding_client = OpenAiEmbeddingClient()
+        self.embedding_client = get_ai_client()
         self.vector_store = JsonVectorStore(index_path)
         self.last_mode = "bm25"
 

@@ -154,3 +154,32 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+   DeskMate AI landing page (marketing route)
+   Scoped design tokens so they never leak into the app shell.
+   Pixel values in the markup are authored at a 1728px reference
+   width and uniformly downscaled via the responsive zoom script.
+   ============================================================ */
+.landing-page {
+  --background: oklch(0.97 0.005 100); /* near-white, slightly warm */
+  --foreground: oklch(0.18 0.01 100); /* near-black */
+  --muted: oklch(0.93 0.005 100);
+  --muted-foreground: oklch(0.45 0.01 100);
+  --surface: oklch(0.94 0.005 100); /* benefits section background */
+  --accent: oklch(0.55 0.12 155);
+  --accent-foreground: oklch(0.98 0 0);
+  --border: oklch(0.88 0.005 100);
+  --header-bg: oklch(0.25 0.01 100 / 0.85); /* translucent nav pill */
+
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page h4 {
+  letter-spacing: -0.025em;
+}

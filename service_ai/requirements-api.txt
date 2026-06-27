@@ -11,4 +11,7 @@ opencv-python>=4.9.0
 mediapipe>=0.10.0
 numpy>=1.26.0
 Pillow>=10.0.0
-openai
+
+# AI client — chat completions + embeddings (https://pythonaisdk.mintlify.app/)
+ai-sdk-python>=0.1.1
+openai>=1.0.0
