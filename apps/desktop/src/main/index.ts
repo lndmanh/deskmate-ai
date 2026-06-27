@@ -2,6 +2,11 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { createActivityTracker, registerActivityIpc } from './modules/activity-tracker'
+
+// Desktop activity tracker (Work Rhythm Module data connector). It does not
+// start on its own — the renderer enables it via IPC once the module is on.
+const activityTracker = createActivityTracker()
 
 function createWindow(): void {
   // Create the browser window.
@@ -52,6 +57,9 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Expose the activity tracker to the renderer.
+  registerActivityIpc(ipcMain, activityTracker, () => BrowserWindow.getAllWindows())
+
   createWindow()
 
   app.on('activate', function () {
@@ -68,6 +76,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Persist the current activity day and tear down the tracker before quitting.
+app.on('before-quit', () => {
+  void activityTracker.dispose()
 })
 
 // In this file you can include the rest of your app"s specific main process
