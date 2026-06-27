@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { spawn, ChildProcess } from 'child_process'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createActivityTracker, registerActivityIpc } from './modules/activity-tracker'
@@ -8,6 +9,22 @@ import { registerChatIpc } from './modules/chat'
 // Desktop activity tracker (Work Rhythm Module data connector). It does not
 // start on its own — the renderer enables it via IPC once the module is on.
 const activityTracker = createActivityTracker()
+
+// Local Python posture tracking process (Posture & Body Module). Opens an
+// OpenCV webcam window and processes frames on-device.
+let postureProcess: ChildProcess | null = null
+
+function startPostureTracking(): void {
+  // From the built main process (out/main) the repo root is four levels up,
+  // where service_ai/ lives.
+  const scriptPath = join(__dirname, '../../../../service_ai/main.py')
+  postureProcess = spawn('python', [scriptPath], {
+    cwd: join(__dirname, '../../../../service_ai'),
+    stdio: 'inherit'
+  })
+  postureProcess.on('error', (err) => console.error('[Posture] Failed to start:', err))
+  postureProcess.on('exit', (code) => console.log('[Posture] Exited with code:', code))
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -64,6 +81,15 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // Start on-device posture tracking. Never let a missing/broken Python
+  // interpreter take down the app — spawn failures also surface async on the
+  // process 'error' handler above.
+  try {
+    startPostureTracking()
+  } catch (err) {
+    console.error('[Posture] Could not start posture tracking:', err)
+  }
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -80,9 +106,11 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Persist the current activity day and tear down the tracker before quitting.
+// Persist the current activity day and tear down the tracker before quitting,
+// and stop the posture tracking process cleanly.
 app.on('before-quit', () => {
   void activityTracker.dispose()
+  postureProcess?.kill()
 })
 
 // In this file you can include the rest of your app"s specific main process
