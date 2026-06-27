@@ -33,6 +33,7 @@
     "clsx": "^2.1.1",
     "electron-updater": "^6.1.7",
     "get-windows": "^9.3.0",
+    "motion-v": "^2.3.0",
     "reka-ui": "^2.10.1",
     "tailwind-merge": "^3.6.0",
     "three": "^0.180.0",
