@@ -11,26 +11,19 @@ from .converters import posture_result_to_dict, to_chat_context, to_pose_frame
 from .schemas import (
     AnalyzePostureRequest,
     AnalyzePostureResponse,
-    BaselineComparisonResponse,
     CalibrationRequest,
     CalibrationResponse,
     ChatRequest,
     ChatResponseSchema,
-    DeleteEventsResponse,
     DeleteMoodHistoryResponse,
-    DemoStartStopResponse,
-    DemoStatusResponse,
-    EventRecordSchema,
     HealthResponse,
     MoodCheckInRequest,
     MoodCheckInResponse,
     MoodSummaryResponse,
-    PrivacyCountersResponse,
     RagSearchRequest,
     RagSearchResponse,
     ResetSessionResponse,
     RetrievedDocumentResponse,
-    RiskStateResponse,
 )
 from .state import api_state
 
@@ -211,112 +204,15 @@ def delete_mood_history() -> DeleteMoodHistoryResponse:
     return DeleteMoodHistoryResponse(ok=True, deleted=True)
 
 
-@app.post("/demo/start", response_model=DemoStartStopResponse)
-def demo_start() -> DemoStartStopResponse:
-    api_state.demo_player.start()
-    return DemoStartStopResponse(ok=True, message="Demo mode started")
+@app.get("/data")
+def get_data() -> dict:
+    return api_state.app_data.get_all()
 
 
-@app.post("/demo/stop", response_model=DemoStartStopResponse)
-def demo_stop() -> DemoStartStopResponse:
-    api_state.demo_player.stop()
-    return DemoStartStopResponse(ok=True, message="Demo mode stopped")
-
-
-@app.get("/demo/status", response_model=DemoStatusResponse)
-def demo_status() -> DemoStatusResponse:
-    return DemoStatusResponse(
-        running=api_state.demo_player.is_running,
-        events_played=api_state.demo_player.events_played,
-    )
-
-
-def _baseline_to_schema(baseline: object | None) -> BaselineComparisonResponse | None:
-    if baseline is None:
-        return None
-    return BaselineComparisonResponse(
-        average_breaks_per_day=baseline.average_breaks_per_day,
-        average_active_time_minutes=baseline.average_active_time_minutes,
-        usual_fatigue_window=baseline.usual_fatigue_window,
-        posture_risk_usually_after_minutes=baseline.posture_risk_usually_after_minutes,
-        days_available=baseline.days_available,
-    )
-
-
-@app.get("/risk/current", response_model=RiskStateResponse)
-def risk_current() -> RiskStateResponse:
-    state = api_state.risk_engine.recompute()
-    return RiskStateResponse(
-        posture_strain=state.posture_strain,
-        break_debt=state.break_debt,
-        fatigue_risk=state.fatigue_risk,
-        desk_health_score=state.desk_health_score,
-        longest_session_minutes=state.longest_session_minutes,
-        active_time_minutes=state.active_time_minutes,
-        break_count=state.break_count,
-        high_risk_period=state.high_risk_period,
-        baseline=_baseline_to_schema(state.baseline),
-        computed_at=state.computed_at,
-    )
-
-
-@app.get("/risk/baseline", response_model=BaselineComparisonResponse)
-def risk_baseline() -> BaselineComparisonResponse:
-    state = api_state.risk_engine.recompute()
-    schema = _baseline_to_schema(state.baseline)
-    if schema is None:
-        return BaselineComparisonResponse(
-            average_breaks_per_day=0.0,
-            average_active_time_minutes=0.0,
-            usual_fatigue_window=None,
-            posture_risk_usually_after_minutes=None,
-            days_available=0,
-        )
-    return schema
-
-
-@app.get("/events", response_model=list[EventRecordSchema])
-def list_events(
-    date: str | None = None,
-    type: str | None = None,
-    limit: int = 100,
-) -> list[EventRecordSchema]:
-    records = api_state.event_store.list_events(date=date, event_type=type, limit=limit)
-    return [
-        EventRecordSchema(
-            id=r.id,
-            timestamp=r.timestamp,
-            source=r.source,
-            type=r.type,
-            severity=r.severity,
-            confidence=r.confidence,
-            duration_seconds=r.duration_seconds,
-            metadata=r.metadata,
-        )
-        for r in records
-    ]
-
-
-@app.get("/events/privacy-counters", response_model=PrivacyCountersResponse)
-def get_privacy_counters() -> PrivacyCountersResponse:
-    c = api_state.event_store.privacy_counters()
-    return PrivacyCountersResponse(
-        webcam_processing=c.webcam_processing,
-        cloud_processing=c.cloud_processing,
-        raw_frames_stored=c.raw_frames_stored,
-        data_shared_with_employer=c.data_shared_with_employer,
-        camera_emotion_detection=False,
-        emotion_inference_from_face=False,
-        posture_events_saved=c.posture_events_saved,
-        workday_events_saved=c.workday_events_saved,
-        nudge_events_saved=c.nudge_events_saved,
-    )
-
-
-@app.delete("/events", response_model=DeleteEventsResponse)
-def delete_events() -> DeleteEventsResponse:
-    api_state.event_store.delete_all()
-    return DeleteEventsResponse(ok=True, deleted=True)
+@app.delete("/data")
+def delete_data() -> dict:
+    api_state.app_data.delete_all()
+    return {"ok": True}
 
 
 @app.post("/rag/search", response_model=RagSearchResponse)

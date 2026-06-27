@@ -15,7 +15,7 @@ class PostureSessionRecorder:
     """
 
     SNAPSHOT_INTERVAL_S = 30
-    DATA_DIR = Path("data/posture_sessions")
+    DATA_DIR = Path("data/user/posture")
 
     def __init__(self) -> None:
         now = datetime.now(_TIMEZONE)
@@ -105,6 +105,19 @@ class PostureSessionRecorder:
             json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         print(f"[DeskMate] Session đã lưu: {out_path}")
+
+        # Đồng bộ summary vào nguồn dữ liệu chung cho frontend; file session là backup.
+        from local_store.store import AppDataStore
+
+        AppDataStore().append_posture_session(
+            payload["summary"]
+            | {
+                "session_id": self.session_id,
+                "started_at": self.started_at,
+                "ended_at": ended_at,
+                "event_counts": payload["summary"]["event_counts"],
+            }
+        )
         return out_path
 
     def _iso(self, timestamp_ms: int) -> str:
