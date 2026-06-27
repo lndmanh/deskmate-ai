@@ -17,6 +17,7 @@ from .schemas import (
     ChatRequest,
     ChatResponseSchema,
     DeleteEventsResponse,
+    DeleteMoodHistoryResponse,
     DemoStartStopResponse,
     DemoStatusResponse,
     EventRecordSchema,
@@ -167,6 +168,7 @@ def mood_check_in(request: MoodCheckInRequest) -> MoodCheckInResponse:
         stress=checkin.stress,
         note=checkin.note,
         source=checkin.source,
+        camera_emotion_detection=False,
     )
 
 
@@ -182,6 +184,7 @@ def recent_mood_checkins(limit: int = 10) -> list[MoodCheckInResponse]:
             stress=checkin.stress,
             note=checkin.note,
             source=checkin.source,
+            camera_emotion_detection=False,
         )
         for checkin in checkins
     ]
@@ -197,7 +200,15 @@ def mood_summary(limit: int = 20) -> MoodSummaryResponse:
         average_energy=summary.average_energy,
         average_stress=summary.average_stress,
         mood_counts=summary.mood_counts,
+        source="self_report",
+        camera_emotion_detection=False,
     )
+
+
+@app.delete("/mood/history", response_model=DeleteMoodHistoryResponse)
+def delete_mood_history() -> DeleteMoodHistoryResponse:
+    api_state.mood_store.delete_all()
+    return DeleteMoodHistoryResponse(ok=True, deleted=True)
 
 
 @app.post("/demo/start", response_model=DemoStartStopResponse)
@@ -294,6 +305,8 @@ def get_privacy_counters() -> PrivacyCountersResponse:
         cloud_processing=c.cloud_processing,
         raw_frames_stored=c.raw_frames_stored,
         data_shared_with_employer=c.data_shared_with_employer,
+        camera_emotion_detection=False,
+        emotion_inference_from_face=False,
         posture_events_saved=c.posture_events_saved,
         workday_events_saved=c.workday_events_saved,
         nudge_events_saved=c.nudge_events_saved,

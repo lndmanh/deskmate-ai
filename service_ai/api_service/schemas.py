@@ -150,6 +150,7 @@ class MoodCheckInResponse(BaseModel):
     stress: int
     note: str | None = None
     source: str
+    camera_emotion_detection: bool = False
 
 
 class MoodSummaryResponse(BaseModel):
@@ -159,6 +160,13 @@ class MoodSummaryResponse(BaseModel):
     average_energy: float | None = None
     average_stress: float | None = None
     mood_counts: dict[str, int]
+    source: str = "self_report"
+    camera_emotion_detection: bool = False
+
+
+class DeleteMoodHistoryResponse(BaseModel):
+    ok: bool
+    deleted: bool
 
 
 class EventRecordSchema(BaseModel):
@@ -177,6 +185,8 @@ class PrivacyCountersResponse(BaseModel):
     cloud_processing: bool
     raw_frames_stored: int
     data_shared_with_employer: bool
+    camera_emotion_detection: bool
+    emotion_inference_from_face: bool
     posture_events_saved: int
     workday_events_saved: int
     nudge_events_saved: int
