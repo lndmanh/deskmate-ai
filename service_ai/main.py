@@ -33,6 +33,16 @@ MODEL_DIR = Path("models")
 POSE_MODEL_PATH = MODEL_DIR / "pose_landmarker_lite.task"
 POSE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
 FONT_PATHS = [
+    # Linux
+    Path("/usr/share/fonts/google-noto-vf/NotoSans[wght].ttf"),
+    Path("/usr/share/fonts/google-noto/NotoSans-Regular.ttf"),
+    Path("/usr/share/fonts/liberation-sans-fonts/LiberationSans-Regular.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    Path("/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
+    # macOS
+    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    Path("/System/Library/Fonts/Helvetica.ttc"),
+    # Windows
     Path("C:/Windows/Fonts/arial.ttf"),
     Path("C:/Windows/Fonts/segoeui.ttf"),
     Path("C:/Windows/Fonts/calibri.ttf"),
