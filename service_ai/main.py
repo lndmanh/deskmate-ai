@@ -17,6 +17,7 @@ from mediapipe.tasks.python.vision import (
     RunningMode,
 )
 
+from mood_tracking import MoodStore
 from posture_tracking import (
     PoseFrame,
     PoseLandmark,
@@ -172,6 +173,13 @@ def normalize_head_tilt(raw_degrees: float) -> float:
     return normalized
 
 
+def format_active_issues(statuses: list[str]) -> str:
+    if not statuses:
+        return "không có"
+
+    return ", ".join(translate_status(status) for status in statuses)
+
+
 def describe_face_distance(face_scale: float) -> str:
     if face_scale >= 1.25:
         return "quá gần"
@@ -193,6 +201,35 @@ def translate_status(status: str) -> str:
         "possible_drowsiness": "tín hiệu mệt/buồn ngủ",
     }
     return labels.get(status, status)
+
+
+def translate_mood(mood: str | None) -> str:
+    if mood is None:
+        return "chưa check-in"
+
+    labels = {
+        "good": "ổn/tốt",
+        "tired": "mệt",
+        "stressed": "căng thẳng",
+        "focused": "đang tập trung",
+        "distracted": "dễ xao nhãng",
+        "calm": "bình tĩnh",
+        "overwhelmed": "quá tải",
+        "neutral": "bình thường",
+    }
+    return labels.get(mood, mood)
+
+
+def format_mood_overlay(mood_store: MoodStore) -> str:
+    summary = mood_store.summarize(limit=20)
+    mood = translate_mood(summary.latest_mood)
+
+    if summary.latest_mood is None:
+        return "Mood self-check-in: chưa có"
+
+    energy = f"{summary.average_energy:.1f}/5" if summary.average_energy is not None else "chưa rõ"
+    stress = f"{summary.average_stress:.1f}/5" if summary.average_stress is not None else "chưa rõ"
+    return f"Mood self-check-in: {mood} | năng lượng {energy} | stress {stress}"
 
 
 def create_video_capture() -> cv2.VideoCapture | None:
@@ -233,6 +270,7 @@ def main() -> None:
     calibration_started_at = time.time()
     last_printed_event_type: str | None = None
     recorder = PostureSessionRecorder()
+    mood_store = MoodStore()
 
     print("DeskMate AI đã bắt đầu theo dõi tư thế.")
     print("Ngồi thẳng trong 5 giây đầu để hiệu chuẩn.")
@@ -306,6 +344,10 @@ def main() -> None:
                         (f"Trạng thái: {translate_status(result.status)}", status_color),
                         (f"Điểm tư thế: {result.score}/100", status_color),
                         (f"Độ tin cậy: {result.confidence:.2f}", (255, 255, 255)),
+                        (
+                            f"Issue đang thấy: {format_active_issues([issue.status for issue in result.active_issues])}",
+                            (255, 255, 255),
+                        ),
                     ]
 
                     if result.features is not None:
@@ -343,6 +385,7 @@ def main() -> None:
                                 (f"Độ lệch vai: {shoulder_percent:.1f}%", (255, 255, 255)),
                                 (f"Ít chuyển động: {result.stillness_ms // 1000}s", (255, 255, 255)),
                                 (f"Chuỗi tư thế xấu: {result.bad_posture_streak_ms // 1000}s", (255, 255, 255)),
+                                (format_mood_overlay(mood_store), (255, 255, 255)),
                             ]
                         )
 

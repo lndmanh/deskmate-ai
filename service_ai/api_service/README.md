@@ -8,7 +8,7 @@ FastAPI service này bọc hai module hiện có:
 ## Cài dependency
 
 ```bash
-pip install fastapi uvicorn pydantic
+pip install -r requirements-api.txt
 ```
 
 Nếu dùng OpenAI chatbot:
@@ -18,6 +18,8 @@ $env:OPENAI_API_KEY="sk-..."
 ```
 
 Nếu không có API key, chatbot vẫn chạy bằng fallback local.
+
+Backend dùng OpenAI Python SDK chính thức (`openai`) để gọi chat completions và embeddings. Frontend không cần và không nên giữ OpenAI API key; frontend chỉ gọi endpoint `/chat` của backend.
 
 ## Chạy API
 

@@ -24,6 +24,18 @@ def angle_degrees(a: PoseLandmark, b: PoseLandmark) -> float:
     return radians * (180 / math.pi)
 
 
+def normalize_head_tilt_degrees(raw_degrees: float) -> float:
+    normalized = raw_degrees
+
+    while normalized > 90:
+        normalized -= 180
+
+    while normalized < -90:
+        normalized += 180
+
+    return normalized
+
+
 def clamp(value: float, minimum: float, maximum: float) -> float:
     return min(max(value, minimum), maximum)
 
@@ -93,6 +105,6 @@ def extract_posture_features(landmarks: list[PoseLandmark]) -> PostureFeatures |
         face_size=face_size,
         eye_distance=eye_distance,
         head_forward_ratio=head_forward_ratio,
-        head_tilt_degrees=angle_degrees(left_ear, right_ear),
+        head_tilt_degrees=normalize_head_tilt_degrees(angle_degrees(left_ear, right_ear)),
         visibility_confidence=calculate_upper_body_visibility(landmarks),
     )

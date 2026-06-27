@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .geometry import clamp, extract_posture_features
+from .geometry import clamp, extract_posture_features, normalize_head_tilt_degrees
 from .types import (
     PoseFrame,
     PostureAlert,
@@ -173,7 +173,10 @@ class PostureAnalyzer:
             calibration.shoulder_balance_y * 1.6,
         )
         head_forward_delta = features.head_forward_ratio - calibration.head_forward_ratio
-        head_tilt_delta = abs(features.head_tilt_degrees - calibration.head_tilt_degrees)
+        head_tilt_delta = abs(
+            normalize_head_tilt_degrees(features.head_tilt_degrees)
+            - normalize_head_tilt_degrees(calibration.head_tilt_degrees)
+        )
         face_scale = features.face_size / calibration.face_size if calibration.face_size != 0 else 1.0
 
         if head_forward_delta > self.thresholds.head_forward_ratio_delta:
@@ -374,7 +377,11 @@ class PostureAnalyzer:
     def _feature_movement_delta(self, previous, current) -> float:
         return (
             abs(previous.head_forward_ratio - current.head_forward_ratio)
-            + abs(previous.head_tilt_degrees - current.head_tilt_degrees) / 180
+            + abs(
+                normalize_head_tilt_degrees(previous.head_tilt_degrees)
+                - normalize_head_tilt_degrees(current.head_tilt_degrees)
+            )
+            / 180
             + abs(previous.shoulder_delta_y - current.shoulder_delta_y)
             + abs(previous.face_size - current.face_size)
         )

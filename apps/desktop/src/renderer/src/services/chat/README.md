@@ -59,3 +59,32 @@ console.log(response.retrievedDocuments)
 ```
 
 UI nên render `response.answer`. `retrievedDocuments` chỉ dùng cho debug/citations nếu cần.
+
+## Ghi chú cho phần UI giao tiếp
+
+Đây là đoạn code mẫu để gắn vào component/chat UI sau này. UI chỉ cần lấy câu hỏi người dùng nhập, gọi backend qua `chatClient.sendMessage`, rồi render `response.answer` vào bong bóng chat của assistant.
+
+```ts
+import { createDeskMateChatClient } from '@/services/chat'
+
+const chatClient = createDeskMateChatClient()
+
+const response = await chatClient.sendMessage({
+  question: 'Bạn có lưu ảnh webcam không?',
+  context: {
+    postureStatus: 'head_tilt',
+    postureScore: 66,
+    rawImagesStored: 0
+  }
+})
+
+console.log(response.answer)
+```
+
+Khi ghép UI thật:
+
+- `question` lấy từ input của user.
+- `context` lấy từ trạng thái app hiện tại nếu có posture/mood/workday data.
+- Không truyền OpenAI API key ở frontend.
+- Không gọi OpenAI trực tiếp từ UI.
+- Backend `/chat` sẽ tự xử lý RAG + OpenAI/fallback.
