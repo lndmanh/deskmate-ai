@@ -37,6 +37,13 @@ export interface ActivityApi {
   onEvent(callback: (event: WorkEvent) => void): () => void
 }
 
+export interface OnboardingApi {
+  read(): Promise<unknown | null>
+  write(data: unknown): Promise<{ path: string }>
+  clear(): Promise<{ path: string }>
+  getPath(): Promise<string>
+}
+
 export interface DeskMateApi {
   activity: ActivityApi
   mascotChat: MascotChatApi
@@ -44,6 +51,7 @@ export interface DeskMateApi {
 
 export interface MascotChatApi {
   sendMessage(request: MascotChatRequest): Promise<MascotChatResponse>
+  onboarding: OnboardingApi
 }
 
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -75,10 +83,9 @@ const mascotChat: MascotChatApi = {
 }
 
 // Custom APIs for renderer
-const api: DeskMateApi = { activity, mascotChat }
+const api: DeskMateApi = { activity, onboarding, mascotChat }
 
 // Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {

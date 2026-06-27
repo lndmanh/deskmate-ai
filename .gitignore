@@ -22,6 +22,8 @@ SHASUMS256.txt
 **/package-lock.json
 compile_commands.json
 .envrc
+.turbo/
+apps/desktop/out/
 
 # npm package
 /npm/dist
@@ -74,6 +76,4 @@ packages/template-compiler/browser.js
 dist
 temp
 types/v3-generated.d.ts
-
-# DeskMate generated user data
 service_ai/data/user/
