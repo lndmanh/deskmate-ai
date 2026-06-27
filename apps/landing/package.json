@@ -1,0 +1,26 @@
+{
+  "name": "@deskmate/landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DeskMate AI marketing landing page — standalone Vue + Vite + Tailwind v4 site",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.21.0",
+    "@vueuse/core": "^14.3.0",
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6",
+    "vue-tsc": "^3.1.6"
+  }
+}

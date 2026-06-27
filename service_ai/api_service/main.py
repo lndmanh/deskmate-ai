@@ -27,6 +27,8 @@ from .schemas import (
 )
 from .state import api_state
 
+from reporting import ReportRequest, ReportResponse
+
 app = FastAPI(
     title="DeskMate AI API",
     description="FastAPI service for posture tracking and DeskMate chatbot.",
@@ -233,4 +235,21 @@ def rag_search(request: RagSearchRequest) -> RagSearchResponse:
             )
             for document in documents
         ],
+    )
+
+
+@app.post("/report", response_model=ReportResponse)
+def generate_report(request: ReportRequest) -> ReportResponse:
+    """Build a comprehensive desk-health report.
+
+    Aggregates the user's mood + posture (from the app data store) and the
+    activity-tracker data supplied in the request, retrieves relevant
+    knowledge-base context, and returns a fixed-structure analysis + ratings +
+    suggestions (AI-written when ``OPENAI_API_KEY`` is set, otherwise computed
+    locally).
+    """
+    return api_state.report_generator.generate(
+        request=request,
+        mood_checkins=api_state.app_data.get_mood(),
+        posture_sessions=api_state.app_data.get_posture_sessions(),
     )

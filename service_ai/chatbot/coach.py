@@ -1,8 +1,8 @@
 from pathlib import Path
 
+from ai_client import get_ai_client
 from rag import HybridRagRetriever, RetrievedDocument
 
-from .llm import OpenAiChatClient
 from .prompts import SYSTEM_PROMPT, build_user_prompt
 from .types import ChatResponse, DeskMateContext
 
@@ -10,7 +10,7 @@ from .types import ChatResponse, DeskMateContext
 class DeskMateCoach:
     def __init__(self, knowledge_base_dir: str | Path = "knowledge_base") -> None:
         self.rag_store = HybridRagRetriever(knowledge_base_dir)
-        self.llm = OpenAiChatClient()
+        self.llm = get_ai_client()
 
     def ask(self, question: str, context: DeskMateContext | None = None) -> ChatResponse:
         safe_context = context or DeskMateContext()

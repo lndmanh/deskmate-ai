@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createActivityTracker, registerActivityIpc } from './modules/activity-tracker'
+import { registerChatIpc } from './modules/chat'
 
 // Desktop activity tracker (Work Rhythm Module data connector). It does not
 // start on its own — the renderer enables it via IPC once the module is on.
@@ -59,6 +60,7 @@ app.whenReady().then(() => {
 
   // Expose the activity tracker to the renderer.
   registerActivityIpc(ipcMain, activityTracker, () => BrowserWindow.getAllWindows())
+  registerChatIpc(ipcMain)
 
   createWindow()
 

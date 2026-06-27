@@ -1,28 +1,41 @@
 <script setup lang="ts">
-import { Activity, Bell, Globe, Home, Settings } from '@lucide/vue'
+import { Activity, Bell, ChartColumn, Gauge, Globe, Home, Settings, Timer } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import ActivityDashboard from '@/components/activity/ActivityDashboard.vue'
+import ActivitySummaryPopover from '@/components/activity/ActivitySummaryPopover.vue'
+import MascotChatBar from '@/components/mascot/MascotChatBar.vue'
 import VrmMascot from '@/components/mascot/VrmMascot.vue'
+import PomodoroPopover from '@/components/pomodoro/PomodoroPopover.vue'
 import SpacePanel from '@/components/spaces/SpacePanel.vue'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle
+} from '@/components/ui/dialog'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { useActivityPanels } from '@/composables/useActivityPanels'
 import { useSpaces } from '@/composables/useSpaces'
 
 const { selectedSpace, isPanelOpen, togglePanel, volume, isMuted } = useSpaces()
+const { isPopoverOpen, isDialogOpen, togglePopover, closeDialog } = useActivityPanels()
+
+const isPomodoroOpen = ref(false)
 
 const videoRef = ref<HTMLIFrameElement | null>(null)
 
 const videoSrc = computed(() => {
   const url = selectedSpace.value?.videoUrl
   if (!url) return null
-  const separator = url.includes('?') ? '&' : '?'
 
   // construct new URL and override parameters to enable autoplay and mute
   const newUrl = new URL(url)
@@ -111,6 +124,49 @@ watch([volume, isMuted, videoSrc], syncVolume)
           <TooltipContent>Activity</TooltipContent>
         </Tooltip>
 
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              :aria-pressed="isPopoverOpen"
+              :class="isPopoverOpen ? 'text-primary' : ''"
+              aria-label="Activity summary"
+              @click="togglePopover"
+            >
+              <ChartColumn class="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Activity summary</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button variant="ghost" size="icon" aria-label="Report" as-child>
+              <RouterLink to="/report">
+                <Gauge class="size-4" />
+              </RouterLink>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Report</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              :aria-pressed="isPomodoroOpen"
+              :class="isPomodoroOpen ? 'text-primary' : ''"
+              aria-label="Pomodoro timer"
+              @click="isPomodoroOpen = !isPomodoroOpen"
+            >
+              <Timer class="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Pomodoro</TooltipContent>
+        </Tooltip>
+
         <ButtonGroupSeparator />
 
         <Tooltip>
@@ -136,11 +192,33 @@ watch([volume, isMuted, videoSrc], syncVolume)
     <!-- Spaces panel -->
     <SpacePanel />
 
+    <!-- Draggable Pomodoro timer -->
+    <PomodoroPopover v-model="isPomodoroOpen" />
+
+    <!-- Draggable activity summary popover -->
+    <ActivitySummaryPopover />
+
+    <!-- Full-screen activity dashboard -->
+    <Dialog :open="isDialogOpen" @update:open="(value) => { if (!value) closeDialog() }">
+      <DialogContent
+        class="flex h-[90vh] w-[90vw] max-w-[90vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[90vw]"
+      >
+        <DialogTitle class="sr-only">Activity Insights</DialogTitle>
+        <DialogDescription class="sr-only">
+          Statistics, charts, and an AI summary of your computer activity.
+        </DialogDescription>
+        <ActivityDashboard />
+      </DialogContent>
+    </Dialog>
+
     <!-- Mascot -->
     <div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
       <div class="pointer-events-auto h-[100vh] w-[100vw] translate-y-[8vh]">
         <VrmMascot />
       </div>
     </div>
+
+    <!-- Mascot chat -->
+    <MascotChatBar />
   </main>
 </template>
