@@ -1,8 +1,48 @@
 {
   "mood": {
-    "checkins": []
+    "checkins": [
+      {
+        "id": "mood_d7228c0d91c5",
+        "timestamp_ms": 1782545251947,
+        "mood": "good",
+        "energy": 4,
+        "stress": 2,
+        "note": "hello",
+        "source": "self_report"
+      },
+      {
+        "id": "mood_0064482f85f9",
+        "timestamp_ms": 1782545851654,
+        "mood": "good",
+        "energy": 5,
+        "stress": 3,
+        "note": "Sáng tốt",
+        "source": "self_report"
+      },
+      {
+        "id": "mood_5b4ef948081e",
+        "timestamp_ms": 1782545851655,
+        "mood": "tired",
+        "energy": 4,
+        "stress": 5,
+        "note": "Chiều mệt",
+        "source": "self_report"
+      }
+    ]
   },
   "posture": {
-    "sessions": []
+    "sessions": [
+      {
+        "total_snapshots": 3,
+        "average_score": 60.0,
+        "time_good_pct": 0.0,
+        "event_counts": {
+          "posture.forward_head": 1
+        },
+        "session_id": "session_20260627_143725",
+        "started_at": "2026-06-27T14:37:25.713337+07:00",
+        "ended_at": "2026-06-27T14:37:25.713539+07:00"
+      }
+    ]
   }
 }

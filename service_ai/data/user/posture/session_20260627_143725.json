@@ -1,0 +1,53 @@
+{
+  "session_id": "session_20260627_143725",
+  "started_at": "2026-06-27T14:37:25.713337+07:00",
+  "ended_at": "2026-06-27T14:37:25.713539+07:00",
+  "events": [
+    {
+      "timestamp_ms": 1782545845713,
+      "timestamp_iso": "2026-06-27T14:37:25.713000+07:00",
+      "type": "posture.forward_head",
+      "severity": "medium",
+      "confidence": 0.85,
+      "score": 60,
+      "held_ms": 5000
+    }
+  ],
+  "snapshots": [
+    {
+      "timestamp_ms": 1782545845713,
+      "timestamp_iso": "2026-06-27T14:37:25.713000+07:00",
+      "status": "forward_head",
+      "score": 60,
+      "confidence": 0.85,
+      "stillness_ms": 0,
+      "bad_posture_streak_ms": 0
+    },
+    {
+      "timestamp_ms": 1782545880713,
+      "timestamp_iso": "2026-06-27T14:38:00.713000+07:00",
+      "status": "forward_head",
+      "score": 60,
+      "confidence": 0.85,
+      "stillness_ms": 0,
+      "bad_posture_streak_ms": 0
+    },
+    {
+      "timestamp_ms": 1782545915713,
+      "timestamp_iso": "2026-06-27T14:38:35.713000+07:00",
+      "status": "forward_head",
+      "score": 60,
+      "confidence": 0.85,
+      "stillness_ms": 0,
+      "bad_posture_streak_ms": 0
+    }
+  ],
+  "summary": {
+    "total_snapshots": 3,
+    "average_score": 60.0,
+    "time_good_pct": 0.0,
+    "event_counts": {
+      "posture.forward_head": 1
+    }
+  }
+}
