@@ -113,7 +113,7 @@ python -m rag.index_knowledge_base
 
 ### Mood check-in
 
-Mood là dữ liệu user tự nhập, không phải detect từ webcam. DeskMate không detect vui, buồn, tức giận hoặc stress qua khuôn mặt.
+Mood check-in là dữ liệu user tự nhập hoặc phân tích từ text user nhập. Endpoint mood không cần ảnh webcam.
 
 ```http
 POST /mood/check-in
@@ -135,6 +135,39 @@ Mood hợp lệ:
 ```txt
 good, tired, stressed, focused, distracted, calm, overwhelmed, neutral
 ```
+
+Phân tích mood từ text bằng OpenAI SDK:
+
+```http
+POST /mood/analyze-text
+```
+
+Body:
+
+```json
+{
+  "text": "Hôm nay tôi thấy mệt và hơi căng thẳng",
+  "save_checkin": false
+}
+```
+
+Response:
+
+```json
+{
+  "mood": "stressed",
+  "energy": 2,
+  "stress": 4,
+  "confidence": 0.76,
+  "reason": "Người dùng mô tả mệt và căng thẳng.",
+  "used_llm": true,
+  "source": "openai_text_analysis",
+  "saved_checkin_id": null,
+  "camera_emotion_detection": false
+}
+```
+
+Nếu `save_checkin=true`, backend sẽ lưu kết quả này vào mood history.
 
 Xem mood gần đây:
 

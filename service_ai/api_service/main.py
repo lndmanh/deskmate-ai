@@ -17,6 +17,8 @@ from .schemas import (
     ChatResponseSchema,
     DeleteMoodHistoryResponse,
     HealthResponse,
+    MoodAnalyzeTextRequest,
+    MoodAnalyzeTextResponse,
     MoodCheckInRequest,
     MoodCheckInResponse,
     MoodSummaryResponse,
@@ -163,6 +165,36 @@ def mood_check_in(request: MoodCheckInRequest) -> MoodCheckInResponse:
         stress=checkin.stress,
         note=checkin.note,
         source=checkin.source,
+        camera_emotion_detection=False,
+    )
+
+
+@app.post("/mood/analyze-text", response_model=MoodAnalyzeTextResponse)
+def analyze_mood_text(request: MoodAnalyzeTextRequest) -> MoodAnalyzeTextResponse:
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text không được để trống.")
+
+    analysis = api_state.mood_text_analyzer.analyze(request.text)
+    saved_checkin_id = None
+
+    if request.save_checkin:
+        checkin = api_state.mood_store.add_checkin(
+            mood=analysis.mood,
+            energy=analysis.energy,
+            stress=analysis.stress,
+            note=request.text,
+        )
+        saved_checkin_id = checkin.id
+
+    return MoodAnalyzeTextResponse(
+        mood=analysis.mood,
+        energy=analysis.energy,
+        stress=analysis.stress,
+        confidence=analysis.confidence,
+        reason=analysis.reason,
+        used_llm=analysis.used_llm,
+        source=analysis.source,
+        saved_checkin_id=saved_checkin_id,
         camera_emotion_detection=False,
     )
 
