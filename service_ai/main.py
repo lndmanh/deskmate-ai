@@ -23,6 +23,7 @@ from posture_tracking import (
     PostureAnalyzer,
     create_posture_calibration,
 )
+from posture_tracking.session_recorder import PostureSessionRecorder
 
 
 CALIBRATION_SECONDS = 5
@@ -231,6 +232,7 @@ def main() -> None:
     analyzer: PostureAnalyzer | None = None
     calibration_started_at = time.time()
     last_printed_event_type: str | None = None
+    recorder = PostureSessionRecorder()
 
     print("DeskMate AI đã bắt đầu theo dõi tư thế.")
     print("Ngồi thẳng trong 5 giây đầu để hiệu chuẩn.")
@@ -351,6 +353,7 @@ def main() -> None:
                     draw_info_panel(frame, panel_lines)
 
                     event = analyzer.to_event(result)
+                    recorder.record(result, event)
 
                     if event is not None and event.type != last_printed_event_type:
                         print(event)
@@ -361,6 +364,7 @@ def main() -> None:
             if cv2.waitKey(5) & 0xFF == ord("q"):
                 break
 
+    recorder.save()
     capture.release()
     cv2.destroyAllWindows()
 
