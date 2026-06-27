@@ -1,0 +1,33 @@
+{
+  "name": "deskmate-monorepo",
+  "version": "1.0.0",
+  "description": "DeskMate AI — local-first work-wellness desktop hub (monorepo)",
+  "private": true,
+  "author": "DeskMate AI",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*",
+    "workers/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "turbo run db:generate",
+    "deploy": "turbo run deploy",
+    "format": "prettier --write .",
+    "ml:dev": "uv run --project services/ml uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "compose:up": "docker compose -f infra/compose.yaml up --build",
+    "compose:down": "docker compose -f infra/compose.yaml down"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
