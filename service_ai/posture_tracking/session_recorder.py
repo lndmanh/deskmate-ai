@@ -2,6 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from user_data import user_data_path
+
 from .types import PostureAnalysisResult, PostureEvent
 
 _TIMEZONE = timezone(timedelta(hours=7))
@@ -15,7 +17,7 @@ class PostureSessionRecorder:
     """
 
     SNAPSHOT_INTERVAL_S = 30
-    DATA_DIR = Path("data/user/posture")
+    DATA_DIR = user_data_path("posture")
 
     def __init__(self) -> None:
         now = datetime.now(_TIMEZONE)

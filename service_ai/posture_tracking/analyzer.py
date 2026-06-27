@@ -35,6 +35,9 @@ class IssueState:
 
 
 class PostureAnalyzer:
+    movement_reset_grace_ms = 1_500
+    bad_posture_streak_grace_ms = 1_000
+
     def __init__(
         self,
         calibration: PostureCalibration | None = None,
@@ -46,7 +49,9 @@ class PostureAnalyzer:
         self.last_alert_type: PostureStatus | None = None
         self.previous_features = None
         self.stillness_started_at_ms: int | None = None
+        self.movement_started_at_ms: int | None = None
         self.bad_posture_streak_started_at_ms: int | None = None
+        self.bad_posture_missing_started_at_ms: int | None = None
 
     def set_calibration(self, calibration: PostureCalibration) -> None:
         self.calibration = calibration
@@ -54,7 +59,9 @@ class PostureAnalyzer:
         self.last_alert_type = None
         self.previous_features = None
         self.stillness_started_at_ms = None
+        self.movement_started_at_ms = None
         self.bad_posture_streak_started_at_ms = None
+        self.bad_posture_missing_started_at_ms = None
 
     def analyze(self, frame: PoseFrame) -> PostureAnalysisResult:
         features = extract_posture_features(frame.landmarks)
@@ -367,11 +374,21 @@ class PostureAnalyzer:
         self.previous_features = features
 
         if movement_delta <= self.thresholds.stillness_movement_delta:
+            self.movement_started_at_ms = None
+            if self.stillness_started_at_ms is None:
+                self.stillness_started_at_ms = timestamp_ms
+            return timestamp_ms - self.stillness_started_at_ms
+
+        if self.movement_started_at_ms is None:
+            self.movement_started_at_ms = timestamp_ms
+
+        if timestamp_ms - self.movement_started_at_ms < self.movement_reset_grace_ms:
             if self.stillness_started_at_ms is None:
                 self.stillness_started_at_ms = timestamp_ms
             return timestamp_ms - self.stillness_started_at_ms
 
         self.stillness_started_at_ms = timestamp_ms
+        self.movement_started_at_ms = None
         return 0
 
     def _feature_movement_delta(self, previous, current) -> float:
@@ -392,11 +409,20 @@ class PostureAnalyzer:
         )
 
         if has_bad_posture_issue:
+            self.bad_posture_missing_started_at_ms = None
             if self.bad_posture_streak_started_at_ms is None:
                 self.bad_posture_streak_started_at_ms = timestamp_ms
             return timestamp_ms - self.bad_posture_streak_started_at_ms
 
+        if self.bad_posture_streak_started_at_ms is not None:
+            if self.bad_posture_missing_started_at_ms is None:
+                self.bad_posture_missing_started_at_ms = timestamp_ms
+
+            if timestamp_ms - self.bad_posture_missing_started_at_ms < self.bad_posture_streak_grace_ms:
+                return timestamp_ms - self.bad_posture_streak_started_at_ms
+
         self.bad_posture_streak_started_at_ms = None
+        self.bad_posture_missing_started_at_ms = None
         return 0
 
     def _severity_from_strength(self, strength: float) -> PostureSeverity:

@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from user_data import user_data_path
+
 
 def _default_data() -> dict:
     return {
@@ -15,7 +17,7 @@ class AppDataStore:
     Frontend fetch endpoint /data để lấy toàn bộ nội dung file này.
     """
 
-    DATA_PATH = Path("data/user/app_data.json")
+    DATA_PATH = user_data_path("app_data.json")
 
     def _load(self) -> dict:
         if not self.DATA_PATH.exists():
