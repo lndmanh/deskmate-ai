@@ -19,6 +19,8 @@ class PrivacyCounters:
     cloud_processing: bool = False
     raw_frames_stored: int = 0  # ALWAYS 0 — invariant
     data_shared_with_employer: bool = False
+    camera_emotion_detection: bool = False  # ALWAYS false — mood is self-report only
+    emotion_inference_from_face: bool = False  # ALWAYS false — no face emotion analysis
     posture_events_saved: int = 0
     workday_events_saved: int = 0
     nudge_events_saved: int = 0

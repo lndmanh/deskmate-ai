@@ -111,7 +111,7 @@ python -m rag.index_knowledge_base
 
 ### Mood check-in
 
-Mood là dữ liệu user tự nhập, không phải detect từ webcam.
+Mood là dữ liệu user tự nhập, không phải detect từ webcam. DeskMate không detect vui, buồn, tức giận hoặc stress qua khuôn mặt.
 
 ```http
 POST /mood/check-in
@@ -146,7 +146,31 @@ Xem mood summary:
 GET /mood/summary?limit=20
 ```
 
+Xóa mood history local:
+
+```http
+DELETE /mood/history
+```
+
 Chatbot `/chat` sẽ tự dùng mood summary gần nhất nếu request chưa gửi mood context.
+
+Các response mood luôn có:
+
+```json
+{
+  "source": "self_report",
+  "camera_emotion_detection": false
+}
+```
+
+Privacy counters cũng expose rõ:
+
+```json
+{
+  "camera_emotion_detection": false,
+  "emotion_inference_from_face": false
+}
+```
 
 ### Posture calibration
 

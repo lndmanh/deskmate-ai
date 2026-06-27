@@ -176,6 +176,8 @@ class EventStore:
             cloud_processing=False,
             raw_frames_stored=0,
             data_shared_with_employer=False,
+            camera_emotion_detection=False,
+            emotion_inference_from_face=False,
             posture_events_saved=posture,
             workday_events_saved=workday,
             nudge_events_saved=nudge,
