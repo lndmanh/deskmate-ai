@@ -306,6 +306,30 @@ Khi chạy:
 2. Xem overlay tư thế trên webcam.
 3. Nhấn `q` để thoát.
 
+### 4.1.1. Bật emotion detection từ camera (optional)
+
+Emotion detection dùng HSEmotion-ONNX + ONNX Runtime và chạy local. Đây là dependency optional; posture tracking vẫn chạy nếu chưa cài.
+
+```powershell
+cd C:\deskmate-ai\service_ai
+python -m pip install -r requirements-emotion.txt
+python main.py
+```
+
+Khi chưa cài optional package, overlay sẽ hiện:
+
+```txt
+Emotion camera: chưa bật model
+```
+
+Khi đã cài, overlay sẽ hiện emotion ước lượng:
+
+```txt
+Emotion camera: vui (0.82)
+```
+
+Emotion inference chạy nền khoảng mỗi 4 giây/lần trên face crop đã resize để tránh làm lag webcam posture loop.
+
 ### 4.2. Chạy chatbot CLI
 
 ```powershell

@@ -32,3 +32,14 @@ class MoodSummary:
     average_energy: float | None = None
     average_stress: float | None = None
     mood_counts: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class MoodTextAnalysis:
+    mood: MoodLabel
+    energy: int
+    stress: int
+    confidence: float
+    reason: str
+    used_llm: bool
+    source: str

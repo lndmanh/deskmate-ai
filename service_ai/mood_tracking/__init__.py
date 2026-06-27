@@ -1,4 +1,5 @@
 from .store import MoodStore
-from .types import MoodCheckIn, MoodLabel, MoodSummary
+from .text_analyzer import MoodTextAnalyzer
+from .types import MoodCheckIn, MoodLabel, MoodSummary, MoodTextAnalysis
 
-__all__ = ["MoodCheckIn", "MoodLabel", "MoodStore", "MoodSummary"]
+__all__ = ["MoodCheckIn", "MoodLabel", "MoodStore", "MoodSummary", "MoodTextAnalysis", "MoodTextAnalyzer"]

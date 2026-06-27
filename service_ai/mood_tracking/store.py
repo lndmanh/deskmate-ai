@@ -4,11 +4,16 @@ import uuid
 from dataclasses import asdict
 from pathlib import Path
 
+from user_data import user_data_path
+
 from .types import MoodCheckIn, MoodLabel, MoodSummary
 
 
 class MoodStore:
-    def __init__(self, path: str | Path = "data/user/mood/checkins.json") -> None:
+    def __init__(self, path: str | Path | None = None) -> None:
+        if path is None:
+            path = user_data_path("mood", "checkins.json")
+
         self.path = Path(path)
 
     def add_checkin(

@@ -142,6 +142,11 @@ class MoodCheckInRequest(BaseModel):
     timestamp_ms: int | None = None
 
 
+class MoodAnalyzeTextRequest(BaseModel):
+    text: str
+    save_checkin: bool = False
+
+
 class MoodCheckInResponse(BaseModel):
     id: str
     timestamp_ms: int
@@ -150,6 +155,18 @@ class MoodCheckInResponse(BaseModel):
     stress: int
     note: str | None = None
     source: str
+    camera_emotion_detection: bool = False
+
+
+class MoodAnalyzeTextResponse(BaseModel):
+    mood: str
+    energy: int
+    stress: int
+    confidence: float
+    reason: str
+    used_llm: bool
+    source: str
+    saved_checkin_id: str | None = None
     camera_emotion_detection: bool = False
 
 
