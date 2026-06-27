@@ -47,20 +47,6 @@ function getButtonElement(button: ButtonRef | null): HTMLElement | null {
 
 function handleClick(event: MouseEvent) {
   if (props.disabled || props.isLoading) return
-
-  const button = getButtonElement(buttonRef.value)
-  if (!button) return
-
-  const rect = button.getBoundingClientRect()
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
-
-  const ripple: Ripple = { id: Date.now(), x, y }
-  ripples.value.push(ripple)
-
-  setTimeout(() => {
-    ripples.value = ripples.value.filter(r => r.id !== ripple.id)
-  }, props.rippleDuration)
 }
 </script>
 
@@ -82,16 +68,5 @@ function handleClick(event: MouseEvent) {
       class="text-current"
     />
     <slot v-else />
-    <span
-      v-for="ripple in ripples"
-      :key="ripple.id"
-      class="ripple-effect pointer-events-none absolute size-5 rounded-full bg-current"
-      :style="{
-        'top': `${ripple.y - 10}px`,
-        'left': `${ripple.x - 10}px`,
-        'animationDuration': `${rippleDuration}ms`,
-        '--ripple-scale': rippleScale,
-      }"
-    />
   </Primitive>
 </template>
