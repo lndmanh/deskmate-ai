@@ -8,7 +8,7 @@ from .types import MoodCheckIn, MoodLabel, MoodSummary
 
 
 class MoodStore:
-    def __init__(self, path: str | Path = "data/mood_checkins.json") -> None:
+    def __init__(self, path: str | Path = "data/user/mood/checkins.json") -> None:
         self.path = Path(path)
 
     def add_checkin(
@@ -32,6 +32,11 @@ class MoodStore:
         checkins = self.list_checkins()
         checkins.append(checkin)
         self._save(checkins)
+
+        # Đồng bộ vào nguồn dữ liệu chung cho frontend; file checkins.json là backup.
+        from local_store.store import AppDataStore
+
+        AppDataStore().append_mood(asdict(checkin))
         return checkin
 
     def list_checkins(self, limit: int | None = None) -> list[MoodCheckIn]:
