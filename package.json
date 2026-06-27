@@ -4,8 +4,9 @@
   "description": "DeskMate AI — local-first work-wellness desktop hub (monorepo)",
   "private": true,
   "author": "DeskMate AI",
+  "packageManager": "npm@11.16.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "workspaces": [
     "apps/*",

@@ -35,8 +35,16 @@ export interface ActivityApi {
   onEvent(callback: (event: WorkEvent) => void): () => void
 }
 
+export interface OnboardingApi {
+  read(): Promise<unknown | null>
+  write(data: unknown): Promise<{ path: string }>
+  clear(): Promise<{ path: string }>
+  getPath(): Promise<string>
+}
+
 export interface DeskMateApi {
   activity: ActivityApi
+  onboarding: OnboardingApi
 }
 
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -63,8 +71,15 @@ const activity: ActivityApi = {
   onEvent: (callback) => subscribe(ACTIVITY_CHANNELS.event, callback)
 }
 
+const onboarding: OnboardingApi = {
+  read: () => ipcRenderer.invoke('onboarding:read'),
+  write: (data) => ipcRenderer.invoke('onboarding:write', data),
+  clear: () => ipcRenderer.invoke('onboarding:clear'),
+  getPath: () => ipcRenderer.invoke('onboarding:path')
+}
+
 // Custom APIs for renderer
-const api: DeskMateApi = { activity }
+const api: DeskMateApi = { activity, onboarding }
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
