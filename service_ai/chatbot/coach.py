@@ -4,7 +4,7 @@ from ai_client import get_ai_client
 from rag import HybridRagRetriever, RetrievedDocument
 
 from .prompts import SYSTEM_PROMPT, build_user_prompt
-from .types import ChatResponse, DeskMateContext
+from .types import ChatHistoryMessage, ChatResponse, DeskMateContext
 
 
 class DeskMateCoach:
@@ -12,12 +12,20 @@ class DeskMateCoach:
         self.rag_store = HybridRagRetriever(knowledge_base_dir)
         self.llm = get_ai_client()
 
-    def ask(self, question: str, context: DeskMateContext | None = None) -> ChatResponse:
+    def ask(
+        self,
+        question: str,
+        context: DeskMateContext | None = None,
+        history: list[ChatHistoryMessage] | None = None,
+    ) -> ChatResponse:
         safe_context = context or DeskMateContext()
-        retrieved_documents = self.rag_store.search(question)
+        safe_history = history or []
+        retrieval_query = self._build_retrieval_query(question, safe_history)
+        retrieved_documents = self.rag_store.search(retrieval_query)
         context_block = self._format_context(safe_context)
         retrieved_block = self._format_retrieved_documents(retrieved_documents)
-        user_prompt = build_user_prompt(question, context_block, retrieved_block)
+        history_block = self._format_history(safe_history)
+        user_prompt = build_user_prompt(question, context_block, retrieved_block, history_block)
 
         if self.llm.is_available():
             try:
@@ -65,6 +73,27 @@ class DeskMateCoach:
             lines.extend(f"- {event}" for event in context.extra_events)
 
         return "\n".join(lines)
+
+    def _format_history(self, history: list[ChatHistoryMessage]) -> str:
+        if not history:
+            return "Chưa có lịch sử chat trong phiên này."
+
+        lines = []
+        for message in history[-8:]:
+            label = "Người dùng" if message.role == "user" else "DeskMate"
+            lines.append(f"{label}: {message.content}")
+
+        return "\n".join(lines)
+
+    def _build_retrieval_query(self, question: str, history: list[ChatHistoryMessage]) -> str:
+        previous_user_questions = [
+            message.content for message in history[-6:] if message.role == "user"
+        ]
+
+        if not previous_user_questions:
+            return question
+
+        return "\n".join(previous_user_questions + [question])
 
     def _format_retrieved_documents(self, documents: list[RetrievedDocument]) -> str:
         if not documents:

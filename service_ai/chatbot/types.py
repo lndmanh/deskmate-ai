@@ -10,6 +10,12 @@ class ChatMessage:
 
 
 @dataclass(frozen=True)
+class ChatHistoryMessage:
+    role: str
+    content: str
+
+
+@dataclass(frozen=True)
 class DeskMateContext:
     active_time: str | None = None
     longest_session: str | None = None

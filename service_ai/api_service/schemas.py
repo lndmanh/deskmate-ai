@@ -96,9 +96,15 @@ class ChatContextSchema(BaseModel):
     extra_events: list[str] = Field(default_factory=list)
 
 
+class ChatHistoryMessageSchema(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str
     context: ChatContextSchema | None = None
+    history: list[ChatHistoryMessageSchema] = Field(default_factory=list)
 
 
 class RetrievedDocumentResponse(BaseModel):

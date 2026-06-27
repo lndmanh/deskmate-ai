@@ -14,7 +14,12 @@ const { playMotion } = useMascot()
 const message = ref('')
 const isSending = ref(false)
 const errorMessage = ref<string | null>(null)
-const latestReply = ref<string | null>(null)
+const chatMessages = ref<ChatMessage[]>([])
+
+type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 const trimmedMessage = computed(() => message.value.trim())
 const canSend = computed(() => trimmedMessage.value.length > 0 && !isSending.value)
@@ -28,12 +33,20 @@ async function sendMessage(): Promise<void> {
   if (!canSend.value) return
 
   const outgoingMessage = trimmedMessage.value
+  const history = chatMessages.value.slice(-6).map((chatMessage) => ({
+    role: chatMessage.role,
+    content: chatMessage.content
+  }))
   isSending.value = true
   errorMessage.value = null
+  chatMessages.value = [...chatMessages.value, { role: 'user', content: outgoingMessage }]
 
   try {
-    const response = await window.api.mascotChat.sendMessage({ message: outgoingMessage })
-    latestReply.value = response.message
+    const response = await window.api.mascotChat.sendMessage({
+      message: outgoingMessage,
+      history
+    })
+    chatMessages.value = [...chatMessages.value, { role: 'assistant', content: response.message }]
     message.value = ''
     if (!playMotion(response.motion)) playMotion('happy')
   } catch (error) {
@@ -55,31 +68,52 @@ async function sendMessage(): Promise<void> {
       :transition="{ type: 'spring', stiffness: 260, damping: 28, mass: 0.8 }"
     >
       <form
-        class="bg-background/90 supports-backdrop-filter:bg-background/75 flex flex-col gap-2 rounded-xl border p-2 shadow-2xl backdrop-blur-xl"
+        class="bg-background/95 supports-backdrop-filter:bg-background/90 flex flex-col gap-3 rounded-xl border p-3 shadow-2xl backdrop-blur-md"
         aria-label="Mascot chat"
         @submit.prevent="sendMessage"
       >
         <AnimatePresence>
-          <motion.p
-            v-if="latestReply && !errorMessage"
-            key="mascot-reply"
-            class="text-muted-foreground flex items-start gap-2 px-2 pt-1 text-xs leading-relaxed"
+          <motion.div
+            v-if="chatMessages.length > 0 && !errorMessage"
+            key="mascot-conversation"
+            class="max-h-56 space-y-2 overflow-y-auto rounded-lg border bg-muted/40 p-2.5"
             aria-live="polite"
             :initial="{ opacity: 0, y: 4 }"
             :animate="{ opacity: 1, y: 0 }"
             :exit="{ opacity: 0, y: -4 }"
             :transition="{ duration: 0.16 }"
           >
-            <Sparkles class="text-primary mt-0.5 size-3.5 shrink-0" />
-            <span>{{ latestReply }}</span>
-          </motion.p>
+            <section
+              v-for="(chatMessage, index) in chatMessages"
+              :key="`${chatMessage.role}-${index}`"
+              class="rounded-md px-3 py-2 shadow-sm"
+              :class="chatMessage.role === 'user' ? 'bg-background' : 'border-primary/20 bg-primary/10 border'"
+            >
+              <div
+                v-if="chatMessage.role === 'assistant'"
+                class="text-primary flex items-center gap-1.5 text-[0.68rem] font-semibold tracking-wide uppercase"
+              >
+                <Sparkles class="size-3.5 shrink-0" aria-hidden="true" />
+                <span>DeskMate</span>
+              </div>
+              <p
+                v-else
+                class="text-primary text-[0.68rem] font-semibold tracking-wide uppercase"
+              >
+                You
+              </p>
+              <p class="text-foreground mt-1 text-sm leading-relaxed whitespace-pre-wrap">
+                {{ chatMessage.content }}
+              </p>
+            </section>
+          </motion.div>
         </AnimatePresence>
 
         <FieldGroup class="gap-2">
           <Field :data-invalid="errorMessage ? true : undefined" class="gap-1.5">
             <FieldLabel for="mascot-chat-message" class="sr-only">Message for DeskMate</FieldLabel>
             <InputGroup
-              class="bg-background/70 supports-backdrop-filter:bg-background/50 min-h-11 rounded-lg shadow-none backdrop-blur"
+              class="bg-background min-h-11 rounded-lg shadow-none"
             >
               <InputGroupAddon align="inline-start" class="pl-3 pr-1">
                 <Bot class="text-primary size-4" aria-hidden="true" />

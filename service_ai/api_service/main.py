@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from chatbot import ChatHistoryMessage
 from posture_tracking import PostureAnalyzer, create_posture_calibration
 
 from .config import load_environment
@@ -101,6 +102,8 @@ def chat(request: ChatRequest) -> ChatResponseSchema:
 
     chat_context = to_chat_context(request.context)
     mood_summary_data = api_state.mood_store.summarize(limit=20)
+    posture_sessions = api_state.app_data.get_posture_sessions(limit=20)
+    latest_posture = posture_sessions[0] if posture_sessions else None
 
     if chat_context.latest_mood is None and mood_summary_data.latest_mood is not None:
         chat_context = chat_context.__class__(
@@ -122,7 +125,28 @@ def chat(request: ChatRequest) -> ChatResponseSchema:
             extra_events=chat_context.extra_events,
         )
 
-    response = api_state.coach.ask(request.question, chat_context)
+    if latest_posture is not None and chat_context.posture_score is None:
+        chat_context = chat_context.__class__(
+            active_time=chat_context.active_time,
+            longest_session=chat_context.longest_session,
+            current_session_minutes=chat_context.current_session_minutes,
+            break_count=chat_context.break_count,
+            posture_status="saved_session_summary",
+            posture_score=_safe_int(latest_posture.get("average_score")),
+            posture_confidence=None,
+            posture_risk_events=_count_posture_risk_events(latest_posture),
+            high_risk_period=chat_context.high_risk_period,
+            cloud_mode=chat_context.cloud_mode,
+            raw_images_stored=chat_context.raw_images_stored,
+            latest_mood=chat_context.latest_mood,
+            latest_mood_note=chat_context.latest_mood_note,
+            average_energy=chat_context.average_energy,
+            average_stress=chat_context.average_stress,
+            extra_events=chat_context.extra_events
+            + [_format_posture_session_summary(latest_posture, len(posture_sessions))],
+        )
+
+    response = api_state.coach.ask(request.question, chat_context, _to_chat_history(request.history))
 
     return ChatResponseSchema(
         answer=response.answer,
@@ -166,6 +190,47 @@ def mood_check_in(request: MoodCheckInRequest) -> MoodCheckInResponse:
         note=checkin.note,
         source=checkin.source,
         camera_emotion_detection=False,
+    )
+
+
+def _to_chat_history(history: list) -> list[ChatHistoryMessage]:
+    messages = []
+    for item in history[-8:]:
+        role = item.role.strip()
+        content = item.content.strip()
+        if role in {"user", "assistant"} and content:
+            messages.append(ChatHistoryMessage(role=role, content=content))
+    return messages
+
+
+def _safe_int(value: object) -> int | None:
+    if isinstance(value, (int, float)):
+        return round(value)
+    return None
+
+
+def _count_posture_risk_events(session: dict) -> int:
+    event_counts = session.get("event_counts")
+    if not isinstance(event_counts, dict):
+        return 0
+
+    total = 0
+    for event_type, count in event_counts.items():
+        if event_type != "good" and isinstance(count, int):
+            total += count
+    return total
+
+
+def _format_posture_session_summary(session: dict, total_sessions: int) -> str:
+    average_score = session.get("average_score", "chưa rõ")
+    time_good_pct = session.get("time_good_pct", "chưa rõ")
+    event_counts = session.get("event_counts")
+    event_counts_text = event_counts if isinstance(event_counts, dict) else {}
+
+    return (
+        f"Đã có {total_sessions} posture session đã lưu. "
+        f"Phiên gần nhất: điểm trung bình {average_score}/100, "
+        f"tư thế tốt {time_good_pct}%, event counts {event_counts_text}."
     )
 
 

@@ -60,7 +60,7 @@ app.whenReady().then(() => {
 
   // Expose the activity tracker to the renderer.
   registerActivityIpc(ipcMain, activityTracker, () => BrowserWindow.getAllWindows())
-  registerChatIpc(ipcMain)
+  registerChatIpc(ipcMain, activityTracker)
 
   createWindow()
 
