@@ -21,7 +21,7 @@
     "db:generate": "turbo run db:generate",
     "deploy": "turbo run deploy",
     "format": "prettier --write .",
-    "ml:dev": "uv run --project services/ml uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "ml:dev": "cd service_ai && python -m uvicorn api_service.main:app --reload --host 127.0.0.1 --port 8000",
     "compose:up": "docker compose -f infra/compose.yaml up --build",
     "compose:down": "docker compose -f infra/compose.yaml down"
   },

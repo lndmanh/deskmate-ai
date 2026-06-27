@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from posture_tracking import PostureAnalyzer, create_posture_calibration
 
+from .config import load_environment
+
+load_environment()
+
 from .converters import posture_result_to_dict, to_chat_context, to_pose_frame
 from .schemas import (
     AnalyzePostureRequest,
